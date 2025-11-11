@@ -1,14 +1,10 @@
-# Пробна зміна для повторного розгортання
-# запуск через PowerSell -> 
-# PS C:\WINDOWS\system32> cd "D:\SHEON_py"
-# PS D:\SHEON_py> python sheon_bot.py
-# остановка Ctrl+C
-
-import telegram
+import telegram.ext as telegram
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler
-import logging
 
-TOKEN = "8346974811:AAFqa5h_y-aCvepHELztidKg8W2Qp0oPzUs"
+from dotenv import load_dotenv # <-- НОВИЙ ІМПОРТ
+import os # <-- НОВИЙ ІМПОРТ
+
+load_dotenv() # ЗАВАНТАЖЕННЯ ЗМІННИХ З .env
 
 # Встановлення базового логування
 logging.basicConfig(
@@ -416,3 +412,4 @@ def main():
 if __name__ == '__main__':
 
     main()
+
