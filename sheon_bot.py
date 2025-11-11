@@ -1,3 +1,4 @@
+# Пробна зміна для повторного розгортання
 # запуск через PowerSell -> 
 # PS C:\WINDOWS\system32> cd "D:\SHEON_py"
 # PS D:\SHEON_py> python sheon_bot.py
@@ -413,4 +414,5 @@ def main():
     application.run_polling()
 
 if __name__ == '__main__':
+
     main()
