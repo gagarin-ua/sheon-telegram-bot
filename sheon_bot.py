@@ -9,17 +9,25 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler
 # ----------------------------------------------------
 # --- НАЛАШТУВАННЯ ЛОГУВАННЯ ТА ЗМІННИХ СЕРЕДОВИЩА ---
 # ----------------------------------------------------
+# Завантаження змінних середовища з .env (для локального тестування)
+load_dotenv()
+
+# Отримання токена з Render Environment Variables
+TOKEN = os.getenv("BOT_TOKEN") 
+
+if not TOKEN:
+    print("--------------------------------------------------")
+    print("КРИТИЧНА ПОМИЛКА: Не вдалося знайти Telegram TOKEN.")
+    print("Перевірте, що файл .env існує і містить рядок: TOKEN=ВАШ_ТОКЕН")
+    print("--------------------------------------------------")
+    # Припиняємо виконання, якщо токен відсутній
+    sys.exit(1)
+    
 # Встановлення базового логування
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
-
-# Завантаження змінних середовища з .env (для локального тестування)
-load_dotenv() 
-
-# Отримання токена з Render Environment Variables
-TOKEN = os.getenv("BOT_TOKEN") 
 
 # --- КЛАС ДЛЯ HEALTH CHECK RENDER ---
 class HealthCheckHandler(BaseHTTPRequestHandler):
@@ -408,6 +416,10 @@ async def button_handler(update, context):
         reply_markup = telegram.InlineKeyboardMarkup(contact_keyboard)
         await query.edit_message_text(text=contact_text, reply_markup=reply_markup, parse_mode='Markdown')
 
+# ----------------------------------------------------
+# 4. ГОЛОВНА ФУНКЦІЯ ЗАПУСКУ
+# ----------------------------------------------------
+
 async def remove_keyboard(update, context):
     """Приховує Custom Keyboard."""
     reply_markup = telegram.ReplyKeyboardRemove()
@@ -416,9 +428,6 @@ async def remove_keyboard(update, context):
         reply_markup=reply_markup
     )
 
-# ----------------------------------------------------
-# 4. ГОЛОВНА ФУНКЦІЯ ЗАПУСКУ
-# ----------------------------------------------------
 def main():
     """Запуск бота та фонового HTTP-сервера."""
     if not TOKEN:
@@ -453,6 +462,17 @@ def main():
     logging.info("Starting Telegram Bot (Long Polling)...")
     application.run_polling(poll_interval=1)
 
-
 if __name__ == '__main__':
-    main()
+    # Додаємо try...except для перехоплення помилок, пов'язаних з підключенням
+    try:
+        main()
+    except Exception as e:
+        print(f"КРИТИЧНА ПОМИЛКА ПІД ЧАС ВИКОНАННЯ: {e}")
+        # Виведемо більш детальні дані про токен, якщо він не спрацював
+        if 'token' in str(e).lower() and not TOKEN:
+             print("Перевірка токена на етапі запуску: токен не був визначений.")
+        elif 'token' in str(e).lower() and TOKEN:
+             print("Перевірка токена на етапі запуску: токен знайдено, але він, ймовірно, недійсний.")
+        elif 'Name or service not known' in str(e) or 'getaddrinfo failed' in str(e):
+             print("Помилка мережі: Не вдалося підключитися до серверів Telegram. Перевірте підключення до Інтернету або налаштування проксі на сервері.")
+
