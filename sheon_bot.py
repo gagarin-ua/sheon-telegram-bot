@@ -1,18 +1,38 @@
-import logging # <-- ЦЕ НОВИЙ РЯДОК, ЩО ВИПРАВЛЯЄ ПОМИЛКУ
-import telegram.ext as telegram
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler
-from dotenv import load_dotenv
+import logging
 import os
-
-load_dotenv() # ЗАВАНТАЖЕННЯ ЗМІННИХ З файлу .env
-
+import sys
+from dotenv import load_dotenv
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from threading import Thread
+import telegram
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler
+# ----------------------------------------------------
+# --- НАЛАШТУВАННЯ ЛОГУВАННЯ ТА ЗМІННИХ СЕРЕДОВИЩА ---
+# ----------------------------------------------------
 # Встановлення базового логування
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
 
-TOKEN = os.getenv("BOT_TOKEN")
+# Завантаження змінних середовища з .env (для локального тестування)
+load_dotenv() 
+
+# Отримання токена з Render Environment Variables
+TOKEN = os.getenv("BOT_TOKEN") 
+
+# --- КЛАС ДЛЯ HEALTH CHECK RENDER ---
+class HealthCheckHandler(BaseHTTPRequestHandler):
+    """
+    Мінімалістичний HTTP-сервер, який відповідає OK на запити Render.
+    Це дозволяє Web Service залишатися активним, щоб уникнути Timed out.
+    """
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-type", "text/html")
+        self.end_headers()
+        self.wfile.write(bytes("OK", "utf8"))
+        pass
 
 # ----------------------------------------------------
 # 2. ФУНКЦІЯ, що викликається при команді /start
@@ -388,10 +408,6 @@ async def button_handler(update, context):
         reply_markup = telegram.InlineKeyboardMarkup(contact_keyboard)
         await query.edit_message_text(text=contact_text, reply_markup=reply_markup, parse_mode='Markdown')
 
-# ----------------------------------------------------
-# 4. ГОЛОВНА ФУНКЦІЯ ЗАПУСКУ
-# ----------------------------------------------------
-
 async def remove_keyboard(update, context):
     """Приховує Custom Keyboard."""
     reply_markup = telegram.ReplyKeyboardRemove()
@@ -400,25 +416,43 @@ async def remove_keyboard(update, context):
         reply_markup=reply_markup
     )
 
+# ----------------------------------------------------
+# 4. ГОЛОВНА ФУНКЦІЯ ЗАПУСКУ
+# ----------------------------------------------------
 def main():
-    """Запуск бота."""
+    """Запуск бота та фонового HTTP-сервера."""
+    if not TOKEN:
+        logging.error("BOT_TOKEN is not set. Exiting.")
+        sys.exit(1) # Вихід з помилкою, якщо токен відсутній
+
     application = Application.builder().token(TOKEN).build()
 
-    # Реєструємо обробник для команди /start
+    # Реєстрація обробників
     application.add_handler(CommandHandler("start", start))
-    
-    # РЕЄСТРУЄМО ОБРОБНИК ДЛЯ КНОПОК
     application.add_handler(CallbackQueryHandler(button_handler))
     application.add_handler(CommandHandler("hide", remove_keyboard))
-    application.run_polling()
+    
+    # --- БЛОК: Запуск фіктивного HTTP-сервера для Render Health Check ---
+    
+    # 1. Визначення порту (Render надає його через змінну середовища)
+    # Використовуємо 0.0.0.0, щоб слухати на всіх інтерфейсах
+    try:
+        PORT = int(os.environ.get("PORT", 8080))
+        
+        # 2. Запуск HTTP-сервера у фоновому потоці
+        web_server = HTTPServer(("0.0.0.0", PORT), HealthCheckHandler)
+        server_thread = Thread(target=web_server.serve_forever)
+        server_thread.daemon = True # Дозволяє потоку завершитися, якщо основний потік завершиться
+        server_thread.start()
+        logging.info(f"HTTP Server started on port {PORT} for Render health checks")
+    
+    except Exception as e:
+        logging.error(f"Failed to start HTTP server on port {PORT}: {e}")
+    
+    # 3. Запуск бота (використання Long Polling)
+    logging.info("Starting Telegram Bot (Long Polling)...")
+    application.run_polling(poll_interval=1)
+
 
 if __name__ == '__main__':
-
     main()
-
-
-
-
-
-
-
