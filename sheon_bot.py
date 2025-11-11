@@ -12,7 +12,7 @@ logging.basicConfig(
     level=logging.INFO
 )
 
-    TOKEN = os.getenv("BOT_TOKEN")
+TOKEN = os.getenv("BOT_TOKEN")
 
 # ----------------------------------------------------
 # 2. ФУНКЦІЯ, що викликається при команді /start
@@ -415,6 +415,7 @@ def main():
 if __name__ == '__main__':
 
     main()
+
 
 
 
