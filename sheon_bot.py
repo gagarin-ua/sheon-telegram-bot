@@ -1,8 +1,8 @@
+import logging # <-- ЦЕ НОВИЙ РЯДОК, ЩО ВИПРАВЛЯЄ ПОМИЛКУ
 import telegram.ext as telegram
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler
-
-from dotenv import load_dotenv # <-- НОВИЙ ІМПОРТ
-import os # <-- НОВИЙ ІМПОРТ
+from dotenv import load_dotenv
+import os
 
 load_dotenv() # ЗАВАНТАЖЕННЯ ЗМІННИХ З .env
 
@@ -412,4 +412,5 @@ def main():
 if __name__ == '__main__':
 
     main()
+
 
