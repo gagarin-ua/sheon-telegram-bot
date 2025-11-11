@@ -477,4 +477,3 @@ if __name__ == '__main__':
         elif 'Name or service not known' in str(e) or 'getaddrinfo failed' in str(e):
              print("Помилка мережі: Не вдалося підключитися до серверів Telegram. Перевірте підключення до Інтернету або налаштування проксі на сервері.")
 
-
