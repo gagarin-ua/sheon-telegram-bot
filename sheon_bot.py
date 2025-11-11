@@ -6,6 +6,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from threading import Thread
 import telegram
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler
+
 # ----------------------------------------------------
 # --- НАЛАШТУВАННЯ ЛОГУВАННЯ ТА ЗМІННИХ СЕРЕДОВИЩА ---
 # ----------------------------------------------------
@@ -476,4 +477,5 @@ if __name__ == '__main__':
              print("Перевірка токена на етапі запуску: токен знайдено, але він, ймовірно, недійсний.")
         elif 'Name or service not known' in str(e) or 'getaddrinfo failed' in str(e):
              print("Помилка мережі: Не вдалося підключитися до серверів Telegram. Перевірте підключення до Інтернету або налаштування проксі на сервері.")
+
 
