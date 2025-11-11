@@ -4,7 +4,7 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler
 from dotenv import load_dotenv
 import os
 
-load_dotenv() # ЗАВАНТАЖЕННЯ ЗМІННИХ З .env
+load_dotenv() # ЗАВАНТАЖЕННЯ ЗМІННИХ З файлу .env
 
 # Встановлення базового логування
 logging.basicConfig(
@@ -412,5 +412,6 @@ def main():
 if __name__ == '__main__':
 
     main()
+
 
 
