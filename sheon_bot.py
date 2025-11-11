@@ -9,6 +9,8 @@ load_dotenv() # ЗАВАНТАЖЕННЯ ЗМІННИХ З файлу .env
 # Встановлення базового логування
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
+    
+    TOKEN = os.getenv("BOT_TOKEN")
 )
 
 # ----------------------------------------------------
@@ -412,6 +414,7 @@ def main():
 if __name__ == '__main__':
 
     main()
+
 
 
 
