@@ -45,13 +45,14 @@ def main() -> None:
         )
         logger.info(f"Бот запущен в режиме Webhook на порту {PORT}")
 
-    else:
+    #else:
         # --- Режим Long Polling (для Render Background Worker) ---
         
-        logger.info("Бот запущен в режиме Long Polling.")
-        application.run_polling(allowed_updates=Update.ALL_TYPES)
+        #logger.info("Бот запущен в режиме Long Polling.")
+        #application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
 if __name__ == '__main__':
 
     main()
+
