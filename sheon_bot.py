@@ -1,4 +1,5 @@
 import logging
+from telegram import Update
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 from config import BOT_TOKEN, WEBHOOK_URL
 from handlers.menu import start_command, handle_stones_callback
@@ -52,4 +53,5 @@ def main() -> None:
 
 
 if __name__ == '__main__':
+
     main()
