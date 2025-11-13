@@ -283,20 +283,15 @@ async def remove_keyboard(update, context):
     )
 
 # ----------------------------------------------------
-# 5. ГОЛОВНА ФУНКЦІЯ ЗАПУСКУ (Оновлено для Webhooks)
+# 5. ГОЛОВНА ФУНКЦІЯ ЗАПУСКУ (ЗРОБЛЕНО АСИНХРОННОЮ)
 # ----------------------------------------------------
 
-def main():
-    """Запуск бота у режимі Webhook."""
+async def main():
+    """Асинхронний запуск бота у режимі Webhook."""
     
-    # Вже перевірено на початку файлу
-    if not TOKEN or not WEBHOOK_URL:
-        sys.exit(1)
-
     # 1. Визначення параметрів для Webhook
     PORT = int(os.environ.get("PORT", 8080))
     # Використовуємо частину токена як захищений шлях для webhook
-    # Це запобігає несанкціонованому надсиланню даних на наш сервер
     WEBHOOK_PATH = "/" + TOKEN 
     
     logger.info(f"Запуск у режимі Webhook. URL: {WEBHOOK_URL}{WEBHOOK_PATH}")
@@ -310,23 +305,30 @@ def main():
     application.add_handler(CallbackQueryHandler(button_handler))
     application.add_handler(CommandHandler("hide", remove_keyboard))
     
-    # 4. Налаштування Webhook на стороні Telegram
-    # Встановлюємо, куди Telegram має надсилати оновлення
-    application.bot.set_webhook(url=WEBHOOK_URL + WEBHOOK_PATH)
-    
-    # 5. Запуск сервера для прослуховування Webhooks
-    # urlpath має співпадати з WEBHOOK_PATH без зовнішнього URL
-    application.run_webhook(
+    # 4. Встановлення Webhook на стороні Telegram (Тепер з 'await')
+    try:
+        await application.bot.set_webhook(url=WEBHOOK_URL + WEBHOOK_PATH)
+        logger.info("Webhook успішно встановлено на Telegram.")
+    except Exception as e:
+        logger.error(f"Помилка при встановленні Webhook на Telegram: {e}")
+        # Якщо не вдалося встановити Webhook, немає сенсу запускати сервер
+        sys.exit(1)
+        
+    # 5. Запуск сервера для прослуховування Webhooks (Тепер з 'await')
+    # urlpath має співпадати з WEBHOOK_PATH без початкового слеша '/'
+    await application.run_webhook(
         listen="0.0.0.0",
         port=PORT,
         urlpath=TOKEN, # Слухаємо запити на шляху /<TOKEN>
         webhook_url=WEBHOOK_URL, # Це базова URL для set_webhook (Render URL)
+        # Додаткові параметри, які можуть допомогти усунути конфлікти:
+        drop_pending_updates=True
     )
 
 if __name__ == '__main__':
     try:
-        main()
+        # ЗАПУСК ГОЛОВНОЇ АСИНХРОННОЇ ФУНКЦІЇ ЧЕРЕЗ asyncio.run()
+        asyncio.run(main())
     except Exception as e:
         logger.critical(f"КРИТИЧНА ПОМИЛКА ПІД ЧАС ВИКОНАННЯ: {e}", exc_info=True)
-        # Додатковий вихід для Render, щоб він бачив, що сервіс впав
         sys.exit(1)
