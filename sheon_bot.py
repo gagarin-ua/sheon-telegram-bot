@@ -8,6 +8,8 @@ from threading import Thread
 import telegram
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler
 
+print("--- ПЕРЕВІРКА 1: Імпорти завершено ---") # Активована перевірка
+
 # ----------------------------------------------------
 # --- НАЛАШТУВАННЯ ЛОГУВАННЯ ТА ЗМІННИХ СЕРЕДОВИЩА ---
 # ----------------------------------------------------
@@ -25,9 +27,9 @@ if not TOKEN:
     print("--------------------------------------------------")
     # Припиняємо виконання, якщо токен відсутній
     sys.exit(1)
-
+    
 print(f"--- ПЕРЕВІРКА 2: Токен знайдено (довжина {len(TOKEN)}) ---") # Активована перевірка
-
+    
 # Встановлення базового логування
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -49,6 +51,7 @@ class HealthCheckHandler(BaseHTTPRequestHandler):
 
 # ----------------------------------------------------
 # 2. ФУНКЦІЯ, що викликається при команді /start
+# ... (код без змін)
 # ----------------------------------------------------
 async def start(update, context):
     # Текст вашого привітання
@@ -77,6 +80,7 @@ async def start(update, context):
 
 # ----------------------------------------------------
 # 3. ФУНКЦІЯ ОБРОБКИ КНОПОК (CallbackQueryHandler)
+# ... (код без змін)
 # ----------------------------------------------------
 async def button_handler(update, context):
     query = update.callback_query
@@ -438,7 +442,7 @@ def main():
     if not TOKEN:
         logging.error("BOT_TOKEN is not set. Exiting.")
         sys.exit(1) # Вихід з помилкою, якщо токен відсутній
-
+    
     print("--- ПЕРЕВІРКА 3: Ініціалізація Application ---") # Активована перевірка
     try:
         application = Application.builder().token(TOKEN).build()
@@ -448,9 +452,6 @@ def main():
 
 
     print("--- ПЕРЕВІРКА 4: Реєстрація обробників ---") # Активована перевірка
-
-    application = Application.builder().token(TOKEN).build()
-
     # Реєстрація обробників
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(button_handler))
@@ -460,6 +461,7 @@ def main():
     
     # 1. Визначення порту (Render надає його через змінну середовища)
     # Використовуємо 0.0.0.0, щоб слухати на всіх інтерфейсах
+    PORT = 8080
     try:
         PORT = int(os.environ.get("PORT", 8080))
         
@@ -469,9 +471,11 @@ def main():
         server_thread.daemon = True # Дозволяє потоку завершитися, якщо основний потік завершиться
         server_thread.start()
         logging.info(f"HTTP Server started on port {PORT} for Render health checks")
+        print(f"--- ПЕРЕВІРКА 5: HTTP Server запущено на порту {PORT} ---") # Активована перевірка
     
     except Exception as e:
         logging.error(f"Failed to start HTTP server on port {PORT}: {e}")
+        print(f"--- КРИТИЧНА ПОМИЛКА: Не вдалося запустити HTTP-сервер: {e} ---") # Активована перевірка
     
     # 3. Запуск бота (використання Long Polling)
     logging.info("Starting Telegram Bot (Long Polling)...")
@@ -492,4 +496,5 @@ if __name__ == '__main__':
              print("Перевірка токена на етапі запуску: токен знайдено, але він, ймовірно, недійсний.")
         elif 'Name or service not known' in str(e) or 'getaddrinfo failed' in str(e):
              print("Помилка мережі: Не вдалося підключитися до серверів Telegram. Перевірте підключення до Інтернету або налаштування проксі на сервері.")
+        # Додаємо вихід, щоб Render не тримав мертвий процес
         sys.exit(1)
