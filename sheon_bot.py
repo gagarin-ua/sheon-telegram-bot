@@ -323,6 +323,7 @@ def main():
         except ValueError:
             PORT = 8000
         
+        await application.bot.set_webhook(url=WEBHOOK_URL, drop_pending_updates=True)
         logger.info(f"Бот налаштовує Webhook на {WEBHOOK_URL}/{TOKEN}...")
         
         # Встановлюємо Webhook
@@ -354,5 +355,6 @@ if __name__ == "__main__":
     except Exception as e:
         logging.critical(f"Критическая ошибка запуска: {e}")
     main()
+
 
 
