@@ -256,56 +256,57 @@ async def start_webhook_server(application: Application):
      
     full_webhook_url = f"{WEBHOOK_URL}{WEBHOOK_PATH}"
  
-     # 1. Устанавливаем Webhook
-     logger.info(f"Установка Webhook: {full_webhook_url}")
-     await application.bot.set_webhook(
-         url=full_webhook_url,
-         drop_pending_updates=True
-     )
+    # 1. Устанавливаем Webhook
+    logger.info(f"Установка Webhook: {full_webhook_url}")
+    await application.bot.set_webhook(
+        url=full_webhook_url,
+        drop_pending_updates=True
+    )
  
      # 2. Запускаем веб-сервер
-     logger.info(f"Запуск Webhook-сервера на 0.0.0.0:{PORT} с путем {WEBHOOK_PATH}")
+    logger.info(f"Запуск Webhook-сервера на 0.0.0.0:{PORT} с путем {WEBHOOK_PATH}")
      
      # Запускаем run_webhook в фоновом режиме
-     await application.run_webhook(
-         listen="0.0.0.0",
-         port=PORT,
-         url_path=WEBHOOK_PATH,
-         webhook_url=full_webhook_url # Добавляем этот параметр для надежности
-     )
+    await application.run_webhook(
+        listen="0.0.0.0",
+        port=PORT,
+        url_path=WEBHOOK_PATH,
+        webhook_url=full_webhook_url # Добавляем этот параметр для надежности
+    )
  
  # ----------------------------------------------------
  # --- ЗАПУСК КОДА ---
  # ----------------------------------------------------
- if __name__ == "__main__":
-     if not TOKEN:
-         logger.critical("КРИТИЧНА ПОМИЛКА: Не вдалося знайти Telegram TOKEN (перевірте BOT_TOKEN).")
-         sys.exit(1)
-         
-     if not WEBHOOK_URL:
-         logger.critical("КРИТИЧНА ПОМИЛКА: Не вдалося знайти WEBHOOK_URL. Неможливо запустити в режимі Webhook на Render.")
-         sys.exit(1)
+if __name__ == "__main__":
+    if not TOKEN:
+        logger.critical("КРИТИЧНА ПОМИЛКА: Не вдалося знайти Telegram TOKEN (перевірте BOT_TOKEN).")
+        sys.exit(1)
+      
+    if not WEBHOOK_URL:
+        logger.critical("КРИТИЧНА ПОМИЛКА: Не вдалося знайти WEBHOOK_URL. Неможливо запустити в режимі Webhook на Render.")
+        sys.exit(1)
  
      # Инициализация Application
-     application = Application.builder().token(TOKEN).build()
+    application = Application.builder().token(TOKEN).build()
      
      # Регистрация всех обработчиков
-     application.add_handler(CommandHandler("start", start_command))
-     application.add_handler(CommandHandler("help", help_command))
-     application.add_handler(CallbackQueryHandler(button_handler))
-     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, unknown_message))
+    application.add_handler(CommandHandler("start", start_command))
+    application.add_handler(CommandHandler("help", help_command))
+    application.add_handler(CallbackQueryHandler(button_handler))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, unknown_message))
      
-     try:
+    try:
          # Получаем текущий цикл событий или создаем новый
-         loop = asyncio.get_event_loop()
+        loop = asyncio.get_event_loop()
          
          # Запускаем асинхронную функцию start_webhook_server в цикле событий
-         loop.run_until_complete(start_webhook_server(application))
+        loop.run_until_complete(start_webhook_server(application))
          
         # Держать процесс активным, пока Webhook-сервер работает
-         loop.run_forever()
+        loop.run_forever()
  
-     except Exception as e:
+    except Exception as e:
          # Выводим более подробный трейсбек для отладки
-         logger.critical(f"Критична помилка при запуску: {e}", exc_info=True)
-         sys.exit(1)
+        logger.critical(f"Критична помилка при запуску: {e}", exc_info=True)
+        sys.exit(1)
+
