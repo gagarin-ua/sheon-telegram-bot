@@ -3,9 +3,9 @@ import os
 import sys
 import asyncio
 from dotenv import load_dotenv
-import telegram
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler
-from telegram import ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMarkup, Update, constants
+from telegram.ext import ContextTypes # Додано явний імпорт ContextTypes
 
 # ----------------------------------------------------
 # --- НАЛАШТУВАННЯ ЛОГУВАННЯ ТА ЗМІННИХ СЕРЕДОВИЩА ---
@@ -16,15 +16,14 @@ load_dotenv()
 
 # Отримання токена та URL
 TOKEN = os.getenv("BOT_TOKEN")
-# Для Webhook потрібен зовнішній URL, який Render надає автоматично.
 # Використовуємо WEBHOOK_URL або RENDER_EXTERNAL_URL як резерв.
-WEBHOOK_URL = os.getenv("WEBHOOK_URL") or os.getenv("RENDER_EXTERNAL_URL")
+WEBHOOK_URL_BASE = os.getenv("WEBHOOK_URL") or os.getenv("RENDER_EXTERNAL_URL")
 
-if not TOKEN or not WEBHOOK_URL:
+if not TOKEN or not WEBHOOK_URL_BASE:
     print("-------------------------------------------------------------------------------------")
     if not TOKEN:
         print("КРИТИЧНА ПОМИЛКА: Не вдалося знайти Telegram TOKEN (перевірте BOT_TOKEN).")
-    if not WEBHOOK_URL:
+    if not WEBHOOK_URL_BASE:
         print("КРИТИЧНА ПОМИЛКА: Не вдалося знайти WEBHOOK_URL (перевірте WEBHOOK_URL або RENDER_EXTERNAL_URL).")
         print("Для Webhooks потрібно знати зовнішню адресу сервісу (наприклад, https://my-bot.onrender.com).")
     print("-------------------------------------------------------------------------------------")
@@ -35,6 +34,8 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
+# Додано приглушення логів для httpx, щоб не захаращувати консоль
+logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 # --- ДОПОМІЖНІ ФУНКЦІЇ ДЛЯ МЕНЮ (Рефакторинг для усунення дублювання) ---
@@ -66,18 +67,18 @@ def get_main_menu_keyboard():
 # ----------------------------------------------------
 # 2. ФУНКЦІЯ, що викликається при команді /start
 # ----------------------------------------------------
-async def start(update, context):
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обробляє команду /start, надсилаючи головне меню."""
     welcome_text = get_main_menu_text()
     reply_markup = get_main_menu_keyboard()
     
     # Використовуємо .message.reply_text для нової команди /start
-    await update.message.reply_text(welcome_text, reply_markup=reply_markup, parse_mode='Markdown')
+    await update.message.reply_text(welcome_text, reply_markup=reply_markup, parse_mode=constants.ParseMode.MARKDOWN)
 
 # ----------------------------------------------------
 # 3. ФУНКЦІЯ ОБРОБКИ КНОПОК (CallbackQueryHandler)
 # ----------------------------------------------------
-async def button_handler(update, context):
+async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обробляє натискання на інлайн-кнопки (callback query)."""
     query = update.callback_query
     await query.answer()
@@ -87,7 +88,7 @@ async def button_handler(update, context):
         welcome_text = get_main_menu_text()
         reply_markup = get_main_menu_keyboard()
         # Редагуємо повідомлення, щоб повернутися до меню
-        await query.edit_message_text(text=welcome_text, reply_markup=reply_markup, parse_mode='Markdown')
+        await query.edit_message_text(text=welcome_text, reply_markup=reply_markup, parse_mode=constants.ParseMode.MARKDOWN)
 
     # Обробка натискання на кнопку "📜 ІСТОРІЯ КАМІННЯ" (підменю)
     elif query.data == 'stones_menu':
@@ -125,7 +126,7 @@ async def button_handler(update, context):
             [InlineKeyboardButton("⬅️ Повернутися до Меню", callback_data='menu_back')]
         ]
         reply_markup = InlineKeyboardMarkup(stones_keyboard)
-        await query.edit_message_text(text=stones_intro_text, reply_markup=reply_markup, parse_mode='Markdown')
+        await query.edit_message_text(text=stones_intro_text, reply_markup=reply_markup, parse_mode=constants.ParseMode.MARKDOWN)
 
     # ----------------------------------------------------
     # ЛОГІКА ДЛЯ КОЖНОГО КАМЕНЯ (скорочений приклад)
@@ -153,7 +154,7 @@ async def button_handler(update, context):
         await query.edit_message_text(
             text=STONE_DATA[query.data], 
             reply_markup=InlineKeyboardMarkup(back_button), 
-            parse_mode='Markdown'
+            parse_mode=constants.ParseMode.MARKDOWN
         )
 
     # ----------------------------------------------------
@@ -168,7 +169,7 @@ async def button_handler(update, context):
             "Кожен виріб існує **в єдиному екземплярі**, тому це не просто прикраса, а маленька деталь вашої індивідуальності."
         )
         back_button = [[InlineKeyboardButton("⬅️ Повернутися до Меню", callback_data='menu_back')]]
-        await query.edit_message_text(text=advice_text, reply_markup=InlineKeyboardMarkup(back_button), parse_mode='Markdown')
+        await query.edit_message_text(text=advice_text, reply_markup=InlineKeyboardMarkup(back_button), parse_mode=constants.ParseMode.MARKDOWN)
 
     # 2. Обробка кнопки "⏱️ Графік роботи"
     elif query.data == 'schedule':
@@ -177,7 +178,7 @@ async def button_handler(update, context):
             "Відповідаємо на ваші звернення щодня **з 10:00 до 20:00** в порядку черги."
         )
         back_button = [[InlineKeyboardButton("⬅️ Повернутися до Меню", callback_data='menu_back')]]
-        await query.edit_message_text(text=schedule_text, reply_markup=InlineKeyboardMarkup(back_button), parse_mode='Markdown')
+        await query.edit_message_text(text=schedule_text, reply_markup=InlineKeyboardMarkup(back_button), parse_mode=constants.ParseMode.MARKDOWN)
 
     # 3. Обробка кнопки "📦 Доставка й оплата"
     elif query.data == 'delivery':
@@ -186,7 +187,7 @@ async def button_handler(update, context):
             "Доставка здійснюється у відділення Нової пошти за 'попередньою 100% оплатою'."
         )
         back_button = [[InlineKeyboardButton("⬅️ Повернутися до Меню", callback_data='menu_back')]]
-        await query.edit_message_text(text=delivery_text, reply_markup=InlineKeyboardMarkup(back_button), parse_mode='Markdown')
+        await query.edit_message_text(text=delivery_text, reply_markup=InlineKeyboardMarkup(back_button), parse_mode=constants.ParseMode.MARKDOWN)
 
     # 4. Обробка кнопки "📝 Пам'ятка по догляду" (Створення ПІДМЕНЮ)
     elif query.data == 'care_memo':
@@ -202,7 +203,7 @@ async def button_handler(update, context):
         ]
         
         reply_markup = InlineKeyboardMarkup(care_memo_keyboard)
-        await query.edit_message_text(text=care_memo_intro_text, reply_markup=reply_markup, parse_mode='Markdown')
+        await query.edit_message_text(text=care_memo_intro_text, reply_markup=reply_markup, parse_mode=constants.ParseMode.MARKDOWN)
     
     # 4а. Обробка кнопки "1. Повсякдення та Фурнітура"
     elif query.data == 'care_memo_part1':
@@ -224,7 +225,7 @@ async def button_handler(update, context):
         )
         # Кнопка повернення до підменю
         back_button = [[InlineKeyboardButton("⬅️ Назад до Пам'ятки", callback_data='care_memo')]]
-        await query.edit_message_text(text=part1_text, reply_markup=InlineKeyboardMarkup(back_button), parse_mode='Markdown')
+        await query.edit_message_text(text=part1_text, reply_markup=InlineKeyboardMarkup(back_button), parse_mode=constants.ParseMode.MARKDOWN)
         
     # 4б. Обробка кнопки "2. Зберігання та Догляд за Камінням"
     elif query.data == 'care_memo_part2':
@@ -248,7 +249,7 @@ async def button_handler(update, context):
         )
         # Кнопка повернення до підменю
         back_button = [[InlineKeyboardButton("⬅️ Назад до Пам'ятки", callback_data='care_memo')]]
-        await query.edit_message_text(text=part2_text, reply_markup=InlineKeyboardMarkup(back_button), parse_mode='Markdown')
+        await query.edit_message_text(text=part2_text, reply_markup=InlineKeyboardMarkup(back_button), parse_mode=constants.ParseMode.MARKDOWN)
     
     # 5. Обробка кнопки "💬 Зв'язок з майстром"
     elif query.data == 'contact':
@@ -269,12 +270,12 @@ async def button_handler(update, context):
         ]
         
         reply_markup = InlineKeyboardMarkup(contact_keyboard)
-        await query.edit_message_text(text=contact_text, reply_markup=reply_markup, parse_mode='Markdown')
+        await query.edit_message_text(text=contact_text, reply_markup=reply_markup, parse_mode=constants.ParseMode.MARKDOWN)
 
 # ----------------------------------------------------
 # 4. ДОПОМІЖНА ФУНКЦІЯ ДЛЯ ПРИХОВАННЯ КЛАВІАТУРИ
 # ----------------------------------------------------
-async def remove_keyboard(update, context):
+async def remove_keyboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Приховує Custom Keyboard."""
     # Note: Ця функція приховує ReplyKeyboardMarkup, а не InlineKeyboardMarkup.
     reply_markup = ReplyKeyboardRemove()
@@ -284,20 +285,26 @@ async def remove_keyboard(update, context):
     )
 
 # ----------------------------------------------------
-# 5. ГОЛОВНА ФУНКЦІЯ ЗАПУСКУ (ЗРОБЛЕНО АСИНХРОННОЮ)
+# 5. ГОЛОВНА ФУНКЦІЯ ЗАПУСКУ (Оновлена для Webhook PTB 20.x)
 # ----------------------------------------------------
 
 async def main():
     """Асинхронний запуск бота у режимі Webhook."""
     
     # 1. Визначення параметрів для Webhook
-    PORT = int(os.environ.get("PORT", 8080))
-    # Використовуємо частину токена як захищений шлях для webhook
-    WEBHOOK_PATH = "/" + TOKEN 
+    # Render надає порт через змінну середовища PORT
+    PORT = int(os.environ.get("PORT", "10000")) # Використовуємо 10000 як стандартний для Render, якщо не вказано інше
     
-    logger.info(f"Запуск у режимі Webhook. URL: {WEBHOOK_URL}{WEBHOOK_PATH}")
-    logger.info(f"Слухаємо на хості 0.0.0.0, порту {PORT}")
+    # WEBHOOK_PATH використовуємо як секретний шлях, що співпадає з токеном
+    # Це гарантує, що лише Telegram, знаючий токен, може відправляти запити
+    WEBHOOK_PATH = TOKEN 
+    
+    # Повний URL для set_webhook: WEBHOOK_URL_BASE + WEBHOOK_PATH
+    FULL_WEBHOOK_URL = f"{WEBHOOK_URL_BASE}/{WEBHOOK_PATH}"
 
+    logger.info(f"Запуск у режимі Webhook. Повний URL: {FULL_WEBHOOK_URL}")
+    logger.info(f"Сервер слухатиме на 0.0.0.0, порт: {PORT}")
+    
     # 2. Створення Application
     application = Application.builder().token(TOKEN).build()
 
@@ -306,23 +313,23 @@ async def main():
     application.add_handler(CallbackQueryHandler(button_handler))
     application.add_handler(CommandHandler("hide", remove_keyboard))
     
-    # 4. Встановлення Webhook на стороні Telegram (Тепер з 'await')
+    # 4. Встановлення Webhook на стороні Telegram
     try:
-        await application.bot.set_webhook(url=WEBHOOK_URL + WEBHOOK_PATH)
+        # Встановлюємо webhook з повним URL
+        await application.bot.set_webhook(url=FULL_WEBHOOK_URL)
         logger.info("Webhook успішно встановлено на Telegram.")
     except Exception as e:
         logger.error(f"Помилка при встановленні Webhook на Telegram: {e}")
-        # Якщо не вдалося встановити Webhook, немає сенсу запускати сервер
         sys.exit(1)
         
-    # 5. Запуск сервера для прослуховування Webhooks (Тепер з 'await')
-    # urlpath має співпадати з WEBHOOK_PATH без початкового слеша '/'
+    # 5. Запуск сервера для прослуховування Webhooks 
+    # listen="0.0.0.0" - слухаємо на всіх інтерфейсах
+    # url_path=WEBHOOK_PATH - шлях, який очікуємо від Telegram (у нашому випадку - токен)
     await application.run_webhook(
         listen="0.0.0.0",
         port=PORT,
-        urlpath=TOKEN, # Слухаємо запити на шляху /<TOKEN>
-        webhook_url=WEBHOOK_URL, # Це базова URL для set_webhook (Render URL)
-        # Додаткові параметри, які можуть допомогти усунути конфлікти:
+        url_path=WEBHOOK_PATH, # Шлях, який має відповідати шляху в set_webhook
+        webhook_url=WEBHOOK_URL_BASE, # Базовий URL для коректної роботи PTB
         drop_pending_updates=True
     )
 
@@ -331,5 +338,6 @@ if __name__ == '__main__':
         # ЗАПУСК ГОЛОВНОЇ АСИНХРОННОЇ ФУНКЦІЇ ЧЕРЕЗ asyncio.run()
         asyncio.run(main())
     except Exception as e:
+        # Це спіймає критичні помилки, як-от помилки запуску сервера
         logger.critical(f"КРИТИЧНА ПОМИЛКА ПІД ЧАС ВИКОНАННЯ: {e}", exc_info=True)
         sys.exit(1)
