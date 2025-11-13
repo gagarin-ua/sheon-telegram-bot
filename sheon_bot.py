@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+#http://googleusercontent.com/immersive_entry_chip/1
 from dotenv import load_dotenv
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from threading import Thread
@@ -24,7 +25,9 @@ if not TOKEN:
     print("--------------------------------------------------")
     # Припиняємо виконання, якщо токен відсутній
     sys.exit(1)
-    
+
+print(f"--- ПЕРЕВІРКА 2: Токен знайдено (довжина {len(TOKEN)}) ---") # Активована перевірка
+
 # Встановлення базового логування
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -436,6 +439,16 @@ def main():
         logging.error("BOT_TOKEN is not set. Exiting.")
         sys.exit(1) # Вихід з помилкою, якщо токен відсутній
 
+    print("--- ПЕРЕВІРКА 3: Ініціалізація Application ---") # Активована перевірка
+    try:
+        application = Application.builder().token(TOKEN).build()
+    except Exception as e:
+        print(f"КРИТИЧНА ПОМИЛКА: Application.builder().token(TOKEN).build() завершився з помилкою: {e}")
+        sys.exit(1)
+
+
+    print("--- ПЕРЕВІРКА 4: Реєстрація обробників ---") # Активована перевірка
+
     application = Application.builder().token(TOKEN).build()
 
     # Реєстрація обробників
@@ -462,7 +475,9 @@ def main():
     
     # 3. Запуск бота (використання Long Polling)
     logging.info("Starting Telegram Bot (Long Polling)...")
+    print("--- ПЕРЕВІРКА 6: Запуск Long Polling... ---") # Активована перевірка
     application.run_polling(poll_interval=1)
+    print("--- ПЕРЕВІРКА 7: Long Polling завершено (зазвичай, не досягається) ---") # Активована перевірка
 
 if __name__ == '__main__':
     # Додаємо try...except для перехоплення помилок, пов'язаних з підключенням
@@ -477,3 +492,4 @@ if __name__ == '__main__':
              print("Перевірка токена на етапі запуску: токен знайдено, але він, ймовірно, недійсний.")
         elif 'Name or service not known' in str(e) or 'getaddrinfo failed' in str(e):
              print("Помилка мережі: Не вдалося підключитися до серверів Telegram. Перевірте підключення до Інтернету або налаштування проксі на сервері.")
+        sys.exit(1)
