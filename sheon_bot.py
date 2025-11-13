@@ -4,6 +4,7 @@ import sys
 from dotenv import load_dotenv
 from telegram import ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMarkup, Update # Добавлен Update
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes # Добавлен ContextTypes
+from http import HTTPStatus
 
 # ----------------------------------------------------
 # --- НАЛАШТУВАННЯ ЛОГУВАННЯ ТА ЗМІННИХ СЕРЕДОВИЩА ---
@@ -16,6 +17,7 @@ load_dotenv()
 # Примітка: Render передає WEBHOOK_URL в змінній RENDER_EXTERNAL_URL
 TOKEN = os.getenv("BOT_TOKEN")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL") or os.getenv("RENDER_EXTERNAL_URL")
+PORT = int(os.environ.get("PORT", "8080")) # Порт, который будет слушать веб-сервер
 
 if not TOKEN:
     # Замість sys.exit(1) краще використовувати більш м'який вихід для деяких середовищ
@@ -345,4 +347,10 @@ def main():
 
 
 if __name__ == "__main__":
+    try:
+        # Запуск асинхронной функции
+        asyncio.run(main())
+    except Exception as e:
+        logging.critical(f"Критическая ошибка запуска: {e}")
     main()
+
