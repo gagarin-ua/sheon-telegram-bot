@@ -261,7 +261,12 @@ async def main() -> None:
         sys.exit(1)
 
 
-    application = Application.builder().token(TOKEN).build()
+    application = (
+        Application.builder()
+        .token(TOKEN)
+        .update_queue(asyncio.Queue())
+        .build()
+    )
     
     # Реєстрація всіх обробників
     application.add_handler(CommandHandler("start", start_command))
@@ -300,3 +305,4 @@ if __name__ == "__main__":
     except Exception as e:
         logger.critical(f"Критична помилка при запуску: {e}")
         sys.exit(1)
+
