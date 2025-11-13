@@ -4,7 +4,7 @@ import asyncio
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler
 from telegram import Update, BotCommand, InlineKeyboardButton, InlineKeyboardMarkup
 
-# Настройка логирования
+# --- НАСТРОЙКА ЛОГИРОВАНИЯ ---
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
@@ -12,66 +12,21 @@ logging.basicConfig(
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
-# --- Константы и конфигурация ---
-# Токен и Webhook URL берутся из переменных окружения
+# --- КОНСТАНТЫ И КОНФИГУРАЦИЯ ---
+# Токен и Webhook URL берутся из переменных окружения Render
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
-# Простейшие заглушки для клавиатур и данных
-CALLBACK_DATA_STONES = "stones_data"
-KEYBOARD_MAIN = InlineKeyboardMarkup([
-    [InlineKeyboardButton("ІСТОРІЯ КАМІННЯ", callback_data=f"{CALLBACK_DATA_STONES}:history")],
-    [InlineKeyboardButton("Графік роботи", callback_data="info:schedule")],
-    [InlineKeyboardButton("Каталог і ціни", callback_data="info:catalog")],
-])
-# --- Конец констант ---
-
-print("--- ПЕРЕВІРКА 1: Імпорти завершено ---") # Активована перевірка
+# --- УДАЛЕНИЕ НЕНУЖНЫХ КОНСТАНТ И ЗАГЛУШЕК ИЗ ПРЕДЫДУЩЕГО КОДА ---
+# Удалены: CALLBACK_DATA_STONES, KEYBOARD_MAIN, print("--- ПЕРЕВІРКА 1...")
+# Удалены: load_dotenv(), sys, HealthCheckHandler
 
 # ----------------------------------------------------
-# --- НАЛАШТУВАННЯ ЛОГУВАННЯ ТА ЗМІННИХ СЕРЕДОВИЩА ---
+# 1. ОБРАБОТЧИКИ КОМАНД И КНОПОК (Ваша логика)
 # ----------------------------------------------------
 
-# Завантаження змінних середовища з .env (для локального тестування)
-load_dotenv()
-
-# Отримання токена з Render Environment Variables
-TOKEN = os.getenv("BOT_TOKEN") 
-
-if not TOKEN:
-    print("--------------------------------------------------")
-    print("КРИТИЧНА ПОМИЛКА: Не вдалося знайти Telegram TOKEN.")
-    print("Перевірте, що файл .env існує і містить рядок: TOKEN=ВАШ_ТОКЕН")
-    print("--------------------------------------------------")
-    # Припиняємо виконання, якщо токен відсутній
-    sys.exit(1)
-    
-print(f"--- ПЕРЕВІРКА 2: Токен знайдено (довжина {len(TOKEN)}) ---") # Активована перевірка
-    
-# Встановлення базового логування
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
-)
-
-# --- КЛАС ДЛЯ HEALTH CHECK RENDER ---
-class HealthCheckHandler(BaseHTTPRequestHandler):
-    """
-    Мінімалістичний HTTP-сервер, який відповідає OK на запити Render.
-    Це дозволяє Web Service залишатися активним, щоб уникнути Timed out.
-    """
-    def do_GET(self):
-        self.send_response(200)
-        self.send_header("Content-type", "text/html")
-        self.end_headers()
-        self.wfile.write(bytes("OK", "utf8"))
-        pass
-
-# ----------------------------------------------------
-# 2. ФУНКЦІЯ, що викликається при команді /start
-# ... (код без змін)
-# ----------------------------------------------------
-async def start(update, context):
+async def start(update: Update, context):
+    """Обробка команди /start та виведення головного меню."""
     # Текст вашого привітання
     welcome_text = (
         "ВІТАЄМО\n\n"
@@ -82,87 +37,82 @@ async def start(update, context):
         "Будьте певні: кожна прикраса існує в єдиному екземплярі і створена саме для вас.\n⭐ Ми можемо відтворити настрій, палітру та матеріали попереднього виробу, але точний повтор неможливий. Кожне замовлення - унікальна композиція.\n⭐ SHEON не гарантує відсутності схожих виробів третіх осіб і не несе відповідальності за дії/продукцію інших виробників."
     )
 
-    # Інлайн-кнопки (вирівняні)
+    # Инлайн-кнопки (используем InlineKeyboardButton и InlineKeyboardMarkup напрямую)
     keyboard = [
-        #[telegram.InlineKeyboardButton("🎁 Каталог і ціни", url="https://t.me/your_channel_link")], 
-        [telegram.InlineKeyboardButton("📜 ІСТОРІЯ КАМІННЯ", callback_data='stones_menu')],
-        [telegram.InlineKeyboardButton("💡 Порада від нас", callback_data='advice')],
-        [telegram.InlineKeyboardButton("⏱️ Графік роботи", callback_data='schedule')],
-        [telegram.InlineKeyboardButton("📦 Доставка й оплата", callback_data='delivery')],
-        [telegram.InlineKeyboardButton("📝 Пам'ятка по догляду", callback_data='care_memo')],
-        [telegram.InlineKeyboardButton("💬 Зв'язок з майстром", callback_data='contact')]
+        # [InlineKeyboardButton("🎁 Каталог і ціни", url="https://t.me/your_channel_link")], 
+        [InlineKeyboardButton("📜 ІСТОРІЯ КАМІННЯ", callback_data='stones_menu')],
+        [InlineKeyboardButton("💡 Порада від нас", callback_data='advice')],
+        [InlineKeyboardButton("⏱️ Графік роботи", callback_data='schedule')],
+        [InlineKeyboardButton("📦 Доставка й оплата", callback_data='delivery')],
+        [InlineKeyboardButton("📝 Пам'ятка по догляду", callback_data='care_memo')],
+        [InlineKeyboardButton("💬 Зв'язок з майстром", callback_data='contact')]
     ]
-    reply_markup = telegram.InlineKeyboardMarkup(keyboard)
+    reply_markup = InlineKeyboardMarkup(keyboard)
 
     await update.message.reply_text(welcome_text, reply_markup=reply_markup, parse_mode='Markdown')
 
-# ----------------------------------------------------
-# 3. ФУНКЦІЯ ОБРОБКИ КНОПОК (CallbackQueryHandler)
-# ... (код без змін)
-# ----------------------------------------------------
-async def button_handler(update, context):
+async def button_handler(update: Update, context):
+    """Обробка натискань на всі кнопки Inline-меню (Ваша повна логіка)."""
     query = update.callback_query
     await query.answer()
+    
+    # --- СОЗДАНИЕ ГЛАВНОГО МЕНЮ ДЛЯ ВОЗВРАТА (КОПИЯ ИЗ start) ---
+    def get_main_menu_markup():
+        welcome_text = (
+            "ВІТАЄМО\n\n"
+            "Ласкаво просимо у світ автентичної біжутерії з натурального каміння SHEON!✨\n\n"
+            "Наші вироби створені для жінок, які цінують унікальність та витонченість.\n\n"
+            "Це не просто аксесуари – це деталі, що підкреслюють ваш стиль і особистість, залишаючи легкий акцент на вашій впевненості.\n\n"
+            "Будьте певні: кожна прикраса існує в єдиному екземплярі і створена саме для вас.\n⭐ Ми можемо відтворити настрій, палітру та матеріали попереднього виробу, але точний повтор неможливий. Кожне замовлення - унікальна композиція.\n⭐ SHEON не гарантує відсутності схожих виробів третіх осіб і не несе відповідальності за дії/продукцію інших виробників."
+        )
+        keyboard = [
+            [InlineKeyboardButton("📜 ІСТОРІЯ КАМІННЯ", callback_data='stones_menu')],
+            [InlineKeyboardButton("💡 Порада від нас", callback_data='advice')],
+            [InlineKeyboardButton("⏱️ Графік роботи", callback_data='schedule')],
+            [InlineKeyboardButton("📦 Доставка й оплата", callback_data='delivery')],
+            [InlineKeyboardButton("📝 Пам'ятка по догляду", callback_data='care_memo')],
+            [InlineKeyboardButton("💬 Зв'язок з майстром", callback_data='contact')]
+        ]
+        return welcome_text, InlineKeyboardMarkup(keyboard)
 
     # Обробка повернення до головного меню
     if query.data == 'menu_back':
-        # Копіюємо вміст функції start для повернення в меню
-        welcome_text = (
-            "ВІТАЄМО\n\n"
-        "Ласкаво просимо у світ автентичної біжутерії з натурального каміння SHEON!✨\n\n"
-        "Наші вироби створені для жінок, які цінують унікальність та витонченість.\n\n"
-        "Це не просто аксесуари – це деталі, що підкреслюють ваш стиль і особистість, залишаючи легкий акцент на вашій впевненості.\n\n"
-        
-        "Будьте певні: кожна прикраса існує в єдиному екземплярі і створена саме для вас.\n⭐ Ми можемо відтворити настрій, палітру та матеріали попереднього виробу, але точний повтор неможливий. Кожне замовлення - унікальна композиція.\n⭐ SHEON не гарантує відсутності схожих виробів третіх осіб і не несе відповідальності за дії/продукцію інших виробників."
-        )
-        keyboard = [
-            #[telegram.InlineKeyboardButton("🎁 Каталог і ціни", url="https://t.me/your_channel_link")], 
-            [telegram.InlineKeyboardButton("📜 ІСТОРІЯ КАМІННЯ", callback_data='stones_menu')],
-            [telegram.InlineKeyboardButton("💡 Порада від нас", callback_data='advice')],
-            [telegram.InlineKeyboardButton("⏱️ Графік роботи", callback_data='schedule')],
-            [telegram.InlineKeyboardButton("📦 Доставка й оплата", callback_data='delivery')],
-            [telegram.InlineKeyboardButton("📝 Пам'ятка по догляду", callback_data='care_memo')],
-            [telegram.InlineKeyboardButton("💬 Зв'язок з майстром", callback_data='contact')]
-        ]
-        reply_markup = telegram.InlineKeyboardMarkup(keyboard)
-        await query.edit_message_text(text=welcome_text, reply_markup=reply_markup, parse_mode='Markdown')
+        text, reply_markup = get_main_menu_markup()
+        await query.edit_message_text(text=text, reply_markup=reply_markup, parse_mode='Markdown')
 
-    # Обробка натискання на кнопку "📜 ІСТОРІЯ КАМІННЯ" (підменю)
+    # ----------------------------------------------------
+    # Обработка натискання на кнопку "📜 ІСТОРІЯ КАМІННЯ" (підменю)
+    # ----------------------------------------------------
     elif query.data == 'stones_menu':
         stones_intro_text = (
             "💎 ОБЕРІТЬ СВІЙ КАМІНЬ\n\n"
             "Кожне каміння має власну історію, характер та неповторну красу.\n\n"
-            
             "Ми підбираємо тільки натуральне каміння, щоб кожен виріб був унікальним і створював особливий акцент у вашому стилі.\n\n"
-            
             "Зверніть увагу: і надаються виключно в ознайомчих цілях. Ми не гарантуємо певних ефектів або результатів при використанні каміння.\n\n"
-            
             "Наведені властивості каменів відображають 'наш погляд та досвід' і допомагають краще розкрити їхню красу та особливості.\n\n"
-            
             "Це радше рекомендації, ніж обов’язкові правила.\n\n"
-            
             "Оберіть камінь, щоб прочитати його історію:"
         )
         
         # ПОВНИЙ СПИСОК: 12 каменів, відсортовані за алфавітом
         stones_keyboard = [
-            [telegram.InlineKeyboardButton("💧 Аквамарин", callback_data='stone_aquamarine')],
-            [telegram.InlineKeyboardButton("💜 Аметист", callback_data='stone_amethist')],
-            [telegram.InlineKeyboardButton("🟦 Бірюза", callback_data='stone_turquoise')],
-            [telegram.InlineKeyboardButton("🧡 Гранат", callback_data='stone_garnet')],
-            [telegram.InlineKeyboardButton("✨ Лабрадорит", callback_data='stone_labradorite')],
-            [telegram.InlineKeyboardButton("⚫ Онікс", callback_data='stone_onyx')],
-            [telegram.InlineKeyboardButton("⚪ Перли", callback_data='stone_pearls')],
-            [telegram.InlineKeyboardButton("💗 Рожевий кварц", callback_data='stone_rose_quartz')],
-            [telegram.InlineKeyboardButton("💚 Смарагд", callback_data='stone_emerald')],
-            [telegram.InlineKeyboardButton("💙 Топаз", callback_data='stone_topaz')],
-            [telegram.InlineKeyboardButton("🔴 Турмалін", callback_data='stone_tourmaline')],
-            [telegram.InlineKeyboardButton("💛 Цитрин", callback_data='stone_citrine')],
+            [InlineKeyboardButton("💧 Аквамарин", callback_data='stone_aquamarine')],
+            [InlineKeyboardButton("💜 Аметист", callback_data='stone_amethist')],
+            [InlineKeyboardButton("🟦 Бірюза", callback_data='stone_turquoise')],
+            [InlineKeyboardButton("🧡 Гранат", callback_data='stone_garnet')],
+            [InlineKeyboardButton("✨ Лабрадорит", callback_data='stone_labradorite')],
+            [InlineKeyboardButton("⚫ Онікс", callback_data='stone_onyx')],
+            [InlineKeyboardButton("⚪ Перли", callback_data='stone_pearls')],
+            [InlineKeyboardButton("💗 Рожевий кварц", callback_data='stone_rose_quartz')],
+            [InlineKeyboardButton("💚 Смарагд", callback_data='stone_emerald')],
+            [InlineKeyboardButton("💙 Топаз", callback_data='stone_topaz')],
+            [InlineKeyboardButton("🔴 Турмалін", callback_data='stone_tourmaline')],
+            [InlineKeyboardButton("💛 Цитрин", callback_data='stone_citrine')],
             
             # Кнопка повернення
-            [telegram.InlineKeyboardButton("⬅️ Повернутися до Меню", callback_data='menu_back')] 
+            [InlineKeyboardButton("⬅️ Повернутися до Меню", callback_data='menu_back')] 
         ]
-        reply_markup = telegram.InlineKeyboardMarkup(stones_keyboard)
+        reply_markup = InlineKeyboardMarkup(stones_keyboard)
         await query.edit_message_text(text=stones_intro_text, reply_markup=reply_markup, parse_mode='Markdown')
 
     # ----------------------------------------------------
@@ -174,8 +124,8 @@ async def button_handler(update, context):
             "**Властивості:**\n Камінь гармонії та ясності думок.\n Підкреслює спокій і внутрішню силу.\n\n"
             "**Стиль:** Діловий і легкий casual." 
         )
-        back_button = [[telegram.InlineKeyboardButton("⬅️ Назад до Списку Каміння", callback_data='stones_menu')]]
-        await query.edit_message_text(text=text, reply_markup=telegram.InlineKeyboardMarkup(back_button), parse_mode='Markdown')
+        back_button = [[InlineKeyboardButton("⬅️ Назад до Списку Каміння", callback_data='stones_menu')]]
+        await query.edit_message_text(text=text, reply_markup=InlineKeyboardMarkup(back_button), parse_mode='Markdown')
 
     # ----------------------------------------------------
     # 2. АМЕТИСТ
@@ -186,8 +136,8 @@ async def button_handler(update, context):
             "**Властивості:**\n Камінь спокою та гармонії.\n Для тих, хто цінує витонченість і внутрішній баланс.\n\n"
             "**Стиль:** Сережки, каблучки." 
         )
-        back_button = [[telegram.InlineKeyboardButton("⬅️ Назад до Списку Каміння", callback_data='stones_menu')]]
-        await query.edit_message_text(text=text, reply_markup=telegram.InlineKeyboardMarkup(back_button), parse_mode='Markdown')
+        back_button = [[InlineKeyboardButton("⬅️ Назад до Списку Каміння", callback_data='stones_menu')]]
+        await query.edit_message_text(text=text, reply_markup=InlineKeyboardMarkup(back_button), parse_mode='Markdown')
         
     # ----------------------------------------------------
     # 3. БІРЮЗА
@@ -198,8 +148,8 @@ async def button_handler(update, context):
             "**Властивості:**\n Камінь захисту та внутрішнього спокою.\n Підкреслює індивідуальність і легкість стилю.\n\n"
             "**Стиль:** Щоденні та етнічні образи." 
         )
-        back_button = [[telegram.InlineKeyboardButton("⬅️ Назад до Списку Каміння", callback_data='stones_menu')]]
-        await query.edit_message_text(text=text, reply_markup=telegram.InlineKeyboardMarkup(back_button), parse_mode='Markdown')
+        back_button = [[InlineKeyboardButton("⬅️ Назад до Списку Каміння", callback_data='stones_menu')]]
+        await query.edit_message_text(text=text, reply_markup=InlineKeyboardMarkup(back_button), parse_mode='Markdown')
         
     # ----------------------------------------------------
     # 4. ГРАНАТ
@@ -210,8 +160,8 @@ async def button_handler(update, context):
             "**Властивості:**\n Символ життєвої енергії та впевненості.\n Підкреслює характер і рішучість.\n\n"
             "**Стиль:** Для акцентних образів." 
         )
-        back_button = [[telegram.InlineKeyboardButton("⬅️ Назад до Списку Каміння", callback_data='stones_menu')]]
-        await query.edit_message_text(text=text, reply_markup=telegram.InlineKeyboardMarkup(back_button), parse_mode='Markdown')
+        back_button = [[InlineKeyboardButton("⬅️ Назад до Списку Каміння", callback_data='stones_menu')]]
+        await query.edit_message_text(text=text, reply_markup=InlineKeyboardMarkup(back_button), parse_mode='Markdown')
 
     # ----------------------------------------------------
     # 5. ЛАБРАДОРИТ
@@ -222,8 +172,8 @@ async def button_handler(update, context):
             "**Властивості:**\n Камінь натхнення та творчості.\n Підкреслює індивідуальність і легку загадковість.\n\n"
             "**Стиль:** Акцентні браслети та кольє." 
         )
-        back_button = [[telegram.InlineKeyboardButton("⬅️ Назад до Списку Каміння", callback_data='stones_menu')]]
-        await query.edit_message_text(text=text, reply_markup=telegram.InlineKeyboardMarkup(back_button), parse_mode='Markdown')
+        back_button = [[InlineKeyboardButton("⬅️ Назад до Списку Каміння", callback_data='stones_menu')]]
+        await query.edit_message_text(text=text, reply_markup=InlineKeyboardMarkup(back_button), parse_mode='Markdown')
         
     # ----------------------------------------------------
     # 6. ОНІКС
@@ -234,20 +184,20 @@ async def button_handler(update, context):
             "**Властивості:**\n Символ впевненості та внутрішньої сили.\n Допомагає створювати образи цілісності та рішучості.\n\n"
             "**Стиль:** Класика, мінімалізм." 
         )
-        back_button = [[telegram.InlineKeyboardButton("⬅️ Назад до Списку Каміння", callback_data='stones_menu')]]
-        await query.edit_message_text(text=text, reply_markup=telegram.InlineKeyboardMarkup(back_button), parse_mode='Markdown')
+        back_button = [[InlineKeyboardButton("⬅️ Назад до Списку Каміння", callback_data='stones_menu')]]
+        await query.edit_message_text(text=text, reply_markup=InlineKeyboardMarkup(back_button), parse_mode='Markdown')
 
     # ----------------------------------------------------
     # 7. ПЕРЛИ
-    # ----------------------------------------------------
+    # --------------------------------00--------------------
     elif query.data == 'stone_pearls':
         text = (
             "⚪ **ПЕРЛИ**\n\n"
             "**Властивості:**\n Символ чистоти та витонченості.\n Додає елегантності та м’якості образу.\n\n"
             "**Стиль:** Класичні і вечірні прикраси." 
         )
-        back_button = [[telegram.InlineKeyboardButton("⬅️ Назад до Списку Каміння", callback_data='stones_menu')]]
-        await query.edit_message_text(text=text, reply_markup=telegram.InlineKeyboardMarkup(back_button), parse_mode='Markdown')
+        back_button = [[InlineKeyboardButton("⬅️ Назад до Списку Каміння", callback_data='stones_menu')]]
+        await query.edit_message_text(text=text, reply_markup=InlineKeyboardMarkup(back_button), parse_mode='Markdown')
 
     # ----------------------------------------------------
     # 8. РОЖЕВИЙ КВАРЦ
@@ -258,8 +208,8 @@ async def button_handler(update, context):
             "**Властивості:**\n Символ ніжності, жіночності та гармонії.\n Підкреслює елегантність і м’якість образу.\n\n"
             "**Стиль:** Діловий і вечірній." 
         )
-        back_button = [[telegram.InlineKeyboardButton("⬅️ Назад до Списку Каміння", callback_data='stones_menu')]]
-        await query.edit_message_text(text=text, reply_markup=telegram.InlineKeyboardMarkup(back_button), parse_mode='Markdown')
+        back_button = [[InlineKeyboardButton("⬅️ Назад до Списку Каміння", callback_data='stones_menu')]]
+        await query.edit_message_text(text=text, reply_markup=InlineKeyboardMarkup(back_button), parse_mode='Markdown')
         
     # ----------------------------------------------------
     # 9. СМАРАГД
@@ -270,8 +220,8 @@ async def button_handler(update, context):
             "**Властивості:**\n Камінь сили, росту та гармонії.\n Додає вишуканості та аристократичності.\n\n"
             "**Стиль:** Класика та преміальні аксесуари." 
         )
-        back_button = [[telegram.InlineKeyboardButton("⬅️ Назад до Списку Каміння", callback_data='stones_menu')]]
-        await query.edit_message_text(text=text, reply_markup=telegram.InlineKeyboardMarkup(back_button), parse_mode='Markdown')
+        back_button = [[InlineKeyboardButton("⬅️ Назад до Списку Каміння", callback_data='stones_menu')]]
+        await query.edit_message_text(text=text, reply_markup=InlineKeyboardMarkup(back_button), parse_mode='Markdown')
         
     # ----------------------------------------------------
     # 10. ТОПАЗ
@@ -282,8 +232,8 @@ async def button_handler(update, context):
             "**Властивості:**\n Символ ясності та внутрішнього світла.\n Підкреслює чистоту і легкість образу.\n\n"
             "**Стиль:** Елегантні прикраси на вечір." 
         )
-        back_button = [[telegram.InlineKeyboardButton("⬅️ Назад до Списку Каміння", callback_data='stones_menu')]]
-        await query.edit_message_text(text=text, reply_markup=telegram.InlineKeyboardMarkup(back_button), parse_mode='Markdown')
+        back_button = [[InlineKeyboardButton("⬅️ Назад до Списку Каміння", callback_data='stones_menu')]]
+        await query.edit_message_text(text=text, reply_markup=InlineKeyboardMarkup(back_button), parse_mode='Markdown')
 
     # ----------------------------------------------------
     # 11. ТУРМАЛІН
@@ -294,8 +244,8 @@ async def button_handler(update, context):
             "**Властивості:**\n Символ захисту та енергії.\n Підкреслює силу та витонченість.\n\n"
             "**Стиль:** Щоденні і акцентні прикраси." 
         )
-        back_button = [[telegram.InlineKeyboardButton("⬅️ Назад до Списку Каміння", callback_data='stones_menu')]]
-        await query.edit_message_text(text=text, reply_markup=telegram.InlineKeyboardMarkup(back_button), parse_mode='Markdown')
+        back_button = [[InlineKeyboardButton("⬅️ Назад до Списку Каміння", callback_data='stones_menu')]]
+        await query.edit_message_text(text=text, reply_markup=InlineKeyboardMarkup(back_button), parse_mode='Markdown')
 
     # ----------------------------------------------------
     # 12. ЦИТРИН
@@ -306,13 +256,13 @@ async def button_handler(update, context):
             "**Властивості:**\n Камінь енергії та впевненості.\n Додає яскравості та легкого акценту.\n\n"
             "**Стиль:** Щоденне носіння." 
         )
-        back_button = [[telegram.InlineKeyboardButton("⬅️ Назад до Списку Каміння", callback_data='stones_menu')]]
-        await query.edit_message_text(text=text, reply_markup=telegram.InlineKeyboardMarkup(back_button), parse_mode='Markdown')
+        back_button = [[InlineKeyboardButton("⬅️ Назад до Списку Каміння", callback_data='stones_menu')]]
+        await query.edit_message_text(text=text, reply_markup=InlineKeyboardMarkup(back_button), parse_mode='Markdown')
         
-# ----------------------------------------------------
-# БЛОКИ ДЛЯ 5 ОСНОВНИХ КНОПОК
-# ----------------------------------------------------
-    
+    # ----------------------------------------------------
+    # БЛОКИ ДЛЯ 5 ОСНОВНИХ КНОПОК
+    # ----------------------------------------------------
+        
     # 1. Обробка кнопки "💡 Порада від нас"
     elif query.data == 'advice':
         advice_text = (
@@ -320,8 +270,8 @@ async def button_handler(update, context):
             "Носіть каміння так, щоб воно підкреслювало ваш характер, а не тільки колір або тренд.\n\n"
             "Кожен виріб існує **в єдиному екземплярі**, тому це не просто прикраса, а маленька деталь вашої індивідуальності."
         )
-        back_button = [[telegram.InlineKeyboardButton("⬅️ Повернутися до Меню", callback_data='menu_back')]]
-        await query.edit_message_text(text=advice_text, reply_markup=telegram.InlineKeyboardMarkup(back_button), parse_mode='Markdown')
+        back_button = [[InlineKeyboardButton("⬅️ Повернутися до Меню", callback_data='menu_back')]]
+        await query.edit_message_text(text=advice_text, reply_markup=InlineKeyboardMarkup(back_button), parse_mode='Markdown')
 
     # 2. Обробка кнопки "⏱️ Графік роботи"
     elif query.data == 'schedule':
@@ -329,8 +279,8 @@ async def button_handler(update, context):
             "⏱️ **ГРАФІК РОБОТИ**\n\n"
             "Відповідаємо на ваші звернення щодня **з 10:00 до 20:00** в порядку черги."
         )
-        back_button = [[telegram.InlineKeyboardButton("⬅️ Повернутися до Меню", callback_data='menu_back')]]
-        await query.edit_message_text(text=schedule_text, reply_markup=telegram.InlineKeyboardMarkup(back_button), parse_mode='Markdown')
+        back_button = [[InlineKeyboardButton("⬅️ Повернутися до Меню", callback_data='menu_back')]]
+        await query.edit_message_text(text=schedule_text, reply_markup=InlineKeyboardMarkup(back_button), parse_mode='Markdown')
 
     # 3. Обробка кнопки "📦 Доставка й оплата"
     elif query.data == 'delivery':
@@ -338,8 +288,8 @@ async def button_handler(update, context):
             "📦 **ДОСТАВКА Й ОПЛАТА**\n\n"
             "Доставка здійснюється у відділення Нової пошти за 'попередньою 100% оплатою'."
         )
-        back_button = [[telegram.InlineKeyboardButton("⬅️ Повернутися до Меню", callback_data='menu_back')]]
-        await query.edit_message_text(text=delivery_text, reply_markup=telegram.InlineKeyboardMarkup(back_button), parse_mode='Markdown')
+        back_button = [[InlineKeyboardButton("⬅️ Повернутися до Меню", callback_data='menu_back')]]
+        await query.edit_message_text(text=delivery_text, reply_markup=InlineKeyboardMarkup(back_button), parse_mode='Markdown')
 
     # ----------------------------------------------------
     # 4. Обробка кнопки "📝 Пам'ятка по догляду" (Створення ПІДМЕНЮ)
@@ -351,21 +301,18 @@ async def button_handler(update, context):
         )
         
         care_memo_keyboard = [
-            [telegram.InlineKeyboardButton("1. Повсякденне користування", callback_data='care_memo_part1')],
-            [telegram.InlineKeyboardButton("2. Зберігання та Догляд", callback_data='care_memo_part2')],
-            [telegram.InlineKeyboardButton("⬅️ Повернутися до Меню", callback_data='menu_back')] 
+            [InlineKeyboardButton("1. Повсякденне користування", callback_data='care_memo_part1')],
+            [InlineKeyboardButton("2. Зберігання та Догляд", callback_data='care_memo_part2')],
+            [InlineKeyboardButton("⬅️ Повернутися до Меню", callback_data='menu_back')] 
         ]
         
-        reply_markup = telegram.InlineKeyboardMarkup(care_memo_keyboard)
+        reply_markup = InlineKeyboardMarkup(care_memo_keyboard)
         await query.edit_message_text(text=care_memo_intro_text, reply_markup=reply_markup, parse_mode='Markdown')
-    
-    # ----------------------------------------------------
+        
     # 4а. Обробка кнопки "1. Повсякдення та Фурнітура"
-    # ----------------------------------------------------
     elif query.data == 'care_memo_part1':
         part1_text = (
             "1 ПОВСЯКДЕННЕ КОРИСТУВАННЯ\n\n"
-            
             "Повсякденне користування\n"
             "Правило останнього штриха: косметика/парфум → потім прикраси.\n\n"
             
@@ -380,12 +327,10 @@ async def button_handler(update, context):
             "Вона не любить тривалий прямий контакт із водою, потом, парфумами, хлором і солоною водою. Перед тренуванням і водними процедурами — знімайте. Після вологи — відразу витріть насухо."
         )
         # Кнопка повернення до підменю
-        back_button = [[telegram.InlineKeyboardButton("⬅️ Назад до Пам'ятки", callback_data='care_memo')]]
-        await query.edit_message_text(text=part1_text, reply_markup=telegram.InlineKeyboardMarkup(back_button), parse_mode='Markdown')
+        back_button = [[InlineKeyboardButton("⬅️ Назад до Пам'ятки", callback_data='care_memo')]]
+        await query.edit_message_text(text=part1_text, reply_markup=InlineKeyboardMarkup(back_button), parse_mode='Markdown')
         
-    # ----------------------------------------------------
     # 4б. Обробка кнопки "2. Зберігання та Догляд за Камінням"
-    # ----------------------------------------------------
     elif query.data == 'care_memo_part2':
         part2_text = (
             "2. ЗБЕРІГАННЯ ТА ДОГЛЯД\n\n"
@@ -406,12 +351,10 @@ async def button_handler(update, context):
             "Спирт, ацетон, оцет, аміак, хлор, абразиви, ультразвук та пар, різкі удари, різкі перепади температур."
         )
         # Кнопка повернення до підменю
-        back_button = [[telegram.InlineKeyboardButton("⬅️ Назад до Пам'ятки", callback_data='care_memo')]]
-        await query.edit_message_text(text=part2_text, reply_markup=telegram.InlineKeyboardMarkup(back_button), parse_mode='Markdown')
-    
-    # ----------------------------------------------------
+        back_button = [[InlineKeyboardButton("⬅️ Назад до Пам'ятки", callback_data='care_memo')]]
+        await query.edit_message_text(text=part2_text, reply_markup=InlineKeyboardMarkup(back_button), parse_mode='Markdown')
+        
     # 5. Обробка кнопки "💬 Зв'язок з майстром"
-    # ----------------------------------------------------
     elif query.data == 'contact':
         contact_text = (
             "💬 **ЗВ'ЯЗОК З МАЙСТРОМ**\n\n"
@@ -419,83 +362,21 @@ async def button_handler(update, context):
             "Щоб зробити замовлення, уточнити деталі або поставити запитання, напишіть нам:\n\n"
             "✨ *Майстер відповість протягом кількох годин.*\n"
             
-            #"📞 **Телефон:** +380990169800\n"
-            #"✉️ [Email: ваша_пошта@gmail.com](mailto:ваша_пошта@gmail.com)\n\n"
-            
             "✨ *Або напишіть нам у соцмережах за допомогою кнопок нижче.*"
         )
         
-        # Використовуйте найчистіші посилання, щоб уникнути помилок синтаксису!
-        #TELEGRAM_LINK = "https://t.me/USERNAME_МАЙСТРА" 
-        INSTAGRAM_LINK = "https://instagram.com/sheon_jewelry"
-        
         contact_keyboard = [
-            # Кома після першого елемента!
-            #[telegram.InlineKeyboardButton("✉️ Написати в Telegram", url=TELEGRAM_LINK)],
-            
-            # Кома після другого елемента!
-            [telegram.InlineKeyboardButton("📷 Instagram Майстра", url="https://instagram.com/sheon_jewelry")],
-            
-            # Останній елемент, кома не потрібна.
-            [telegram.InlineKeyboardButton("⬅️ Повернутися до Меню", callback_data='menu_back')] 
+            [InlineKeyboardButton("📷 Instagram Майстра", url="https://instagram.com/sheon_jewelry")],
+            [InlineKeyboardButton("⬅️ Повернутися до Меню", callback_data='menu_back')] 
         ]
         
-        reply_markup = telegram.InlineKeyboardMarkup(contact_keyboard)
+        reply_markup = InlineKeyboardMarkup(contact_keyboard)
         await query.edit_message_text(text=contact_text, reply_markup=reply_markup, parse_mode='Markdown')
 
+
 # ----------------------------------------------------
-# 4. ГОЛОВНА ФУНКЦІЯ ЗАПУСКУ
+# 2. ОСНОВНА ФУНКЦІЯ (Исправленная для Webhook Render)
 # ----------------------------------------------------
-
-# --- Обработчики ---
-
-async def start_command(update: Update, context):
-    """Обробка команди /start та виведення головного меню."""
-    user_name = update.effective_user.first_name
-    welcome_text = (
-        f"Ласкаво просимо, {user_name}! "
-        "У світі автентичної біжутерії з натурального каміння SHEON! "
-        "Натисніть кнопку нижче, щоб почати."
-    )
-    
-    await update.message.reply_text(
-        welcome_text,
-        reply_markup=KEYBOARD_MAIN
-    )
-
-async def handle_stones_callback(update: Update, context):
-    """Обробка натискань на кнопки (заглушка)."""
-    query = update.callback_query
-    await query.answer()
-    
-    # Розбираємо дані колбека
-    callback_type, action = query.data.split(':', 1)
-    
-    response_text = f"Ви обрали дію: *{action.upper()}*.\n"
-    
-    if action == 'history':
-        response_text += "Тут буде інформація об історії каменів і їх властивостях. Будь ласка, виберіть цікавий для вас камінь з меню."
-    elif action == 'catalog':
-        response_text += "Тут буде посилання на каталог і ціни."
-    elif action == 'schedule':
-        response_text += "Графік роботи: ПН-ПТ з 10:00 до 18:00."
-    else:
-        response_text += "Ця функція поки що в розробці."
-        
-    # Всегда показываем KEYBOARD_MAIN, кроме случая с 'history', где мы будем 
-    # вводить дополнительную клавиатуру.
-    reply_markup = KEYBOARD_MAIN
-    if action == 'history':
-        # Для "ІСТОРІЯ КАМІННЯ" мы пока просто не показываем клавиатуру
-        reply_markup = None 
-        
-    await query.edit_message_text(
-        text=response_text,
-        reply_markup=reply_markup,
-        parse_mode="Markdown"
-    )
-
-# --- Основная функция ---
 
 def main():
     """Основная функция для запуска бота."""
@@ -507,10 +388,10 @@ def main():
     # 1. Создание Application
     application = Application.builder().token(BOT_TOKEN).build()
 
-    # 2. Регистрация обработчиков (Handlers)
-    application.add_handler(CommandHandler("start", start_command))
-    # Обработка всех кнопок, чьи callback_data начинаются с 'stones_data:' или 'info:'
-    application.add_handler(CallbackQueryHandler(handle_stones_callback, pattern=r'^(stones_data|info):\w+'))
+    # 2. Регистрация обработчиков (Используем ваши полные функции: start и button_handler)
+    application.add_handler(CommandHandler("start", start))
+    # CallbackQueryHandler без pattern обрабатывает все кнопки
+    application.add_handler(CallbackQueryHandler(button_handler))
 
     # 3. Запуск бота (вебхуки или опрос)
     if WEBHOOK_URL:
@@ -538,7 +419,7 @@ def main():
             # Получаем цикл событий, который уже запущен run_webhook
             loop = asyncio.get_event_loop()
             logger.info("ПЕРЕВІРКА 5: Запуск основного цикла ожидания (run_forever).")
-            # Запускаем цикл на ожидание, пока его не прервет внешний сигнал (например, Render)
+            # Запускаем цикл на ожидание
             loop.run_forever()
         except KeyboardInterrupt:
             logger.info("Процесс Webhook остановлен пользователем.")
@@ -547,7 +428,6 @@ def main():
         finally:
             # Остановка приложения Telegram
             logger.info("ПЕРЕВІРКА 6: Остановка приложения.")
-            # Сначала пытаемся остановить Telegram-приложение
             loop.run_until_complete(application.stop())
             logger.info("ПЕРЕВІРКА 7: Приложение успешно остановлено.")
 
