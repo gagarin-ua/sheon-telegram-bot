@@ -1,5 +1,6 @@
 import logging
 import os
+import asyncio
 import sys
 from dotenv import load_dotenv
 from telegram import ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMarkup, Update # Добавлен Update
@@ -353,4 +354,5 @@ if __name__ == "__main__":
     except Exception as e:
         logging.critical(f"Критическая ошибка запуска: {e}")
     main()
+
 
