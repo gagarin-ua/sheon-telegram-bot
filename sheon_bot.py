@@ -2,9 +2,8 @@ import logging
 import os
 import sys
 from dotenv import load_dotenv
-import telegram
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler
-from telegram import ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMarkup, Update # Добавлен Update
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes # Добавлен ContextTypes
 
 # ----------------------------------------------------
 # --- НАЛАШТУВАННЯ ЛОГУВАННЯ ТА ЗМІННИХ СЕРЕДОВИЩА ---
@@ -14,19 +13,14 @@ from telegram import ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMa
 load_dotenv()
 
 # Отримання токена та URL
+# Примітка: Render передає WEBHOOK_URL в змінній RENDER_EXTERNAL_URL
 TOKEN = os.getenv("BOT_TOKEN")
-# Для Webhook потрібен зовнішній URL, який Render надає автоматично.
-# Використовуємо WEBHOOK_URL або RENDER_EXTERNAL_URL як резерв.
 WEBHOOK_URL = os.getenv("WEBHOOK_URL") or os.getenv("RENDER_EXTERNAL_URL")
 
-if not TOKEN or not WEBHOOK_URL:
-    print("-------------------------------------------------------------------------------------")
-    if not TOKEN:
-        print("КРИТИЧНА ПОМИЛКА: Не вдалося знайти Telegram TOKEN (перевірте BOT_TOKEN).")
-    if not WEBHOOK_URL:
-        print("КРИТИЧНА ПОМИЛКА: Не вдалося знайти WEBHOOK_URL (перевірте WEBHOOK_URL або RENDER_EXTERNAL_URL).")
-        print("Для Webhooks потрібно знати зовнішню адресу сервісу (наприклад, https://my-bot.onrender.com).")
-    print("-------------------------------------------------------------------------------------")
+if not TOKEN:
+    # Замість sys.exit(1) краще використовувати більш м'який вихід для деяких середовищ
+    logging.critical("КРИТИЧНА ПОМИЛКА: Не вдалося знайти Telegram TOKEN (перевірте BOT_TOKEN).")
+    # Додамо вихід, якщо токен не знайдено, як у вашому оригіналі
     sys.exit(1)
 
 # Встановлення базового логування
@@ -65,7 +59,8 @@ def get_main_menu_keyboard():
 # ----------------------------------------------------
 # 2. ФУНКЦІЯ, що викликається при команді /start
 # ----------------------------------------------------
-async def start(update, context):
+# Додано ContextTypes.DEFAULT_TYPE для сумісності з сучасною версією python-telegram-bot
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обробляє команду /start, надсилаючи головне меню."""
     welcome_text = get_main_menu_text()
     reply_markup = get_main_menu_keyboard()
@@ -76,7 +71,8 @@ async def start(update, context):
 # ----------------------------------------------------
 # 3. ФУНКЦІЯ ОБРОБКИ КНОПОК (CallbackQueryHandler)
 # ----------------------------------------------------
-async def button_handler(update, context):
+# Додано ContextTypes.DEFAULT_TYPE
+async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обробляє натискання на інлайн-кнопки (callback query)."""
     query = update.callback_query
     await query.answer()
@@ -96,7 +92,7 @@ async def button_handler(update, context):
             
             "Ми підбираємо тільки натуральне каміння, щоб кожен виріб був унікальним і створював особливий акцент у вашому стилі.\n\n"
             
-            "Зверніть увагу: і надаються виключно в ознайомчих цілях. Ми не гарантуємо певних ефектів або результатів при використанні каміння.\n\n"
+            "Зверніть увагу: інформація надається виключно в ознайомчих цілях. Ми не гарантуємо певних ефектів або результатів при використанні каміння.\n\n"
             
             "Наведені властивості каменів відображають 'наш погляд та досвід' і допомагають краще розкрити їхню красу та особливості.\n\n"
             
@@ -273,7 +269,8 @@ async def button_handler(update, context):
 # ----------------------------------------------------
 # 4. ДОПОМІЖНА ФУНКЦІЯ ДЛЯ ПРИХОВАННЯ КЛАВІАТУРИ
 # ----------------------------------------------------
-async def remove_keyboard(update, context):
+# Додано ContextTypes.DEFAULT_TYPE
+async def remove_keyboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Приховує Custom Keyboard."""
     # Note: Ця функція приховує ReplyKeyboardMarkup, а не InlineKeyboardMarkup.
     reply_markup = ReplyKeyboardRemove()
@@ -287,47 +284,65 @@ async def remove_keyboard(update, context):
 # ----------------------------------------------------
 
 def main():
-    """Запуск бота у режимі Webhook."""
+    """Запускає бота в режимі Webhook або Long Polling в залежності від наявності WEBHOOK_URL."""
     
-    # Вже перевірено на початку файлу
-    if not TOKEN or not WEBHOOK_URL:
-        sys.exit(1)
+    # Використовуємо глобально завантажені змінні TOKEN та WEBHOOK_URL
+    global TOKEN, WEBHOOK_URL 
 
-    # 1. Визначення параметрів для Webhook
-    PORT = int(os.environ.get("PORT", 8080))
-    # Використовуємо частину токена як захищений шлях для webhook
-    # Це запобігає несанкціонованому надсиланню даних на наш сервер
-    WEBHOOK_PATH = "/" + TOKEN 
-    
-    logger.info(f"Запуск у режимі Webhook. URL: {WEBHOOK_URL}{WEBHOOK_PATH}")
-    logger.info(f"Слухаємо на хості 0.0.0.0, порту {PORT}")
+    if not TOKEN:
+         # Це вже перевірено на початку файлу, але для безпеки залишаємо лог
+        logging.critical("Переменная окружения 'TOKEN' не найдена.")
+        return
 
-    # 2. Створення Application
+    # 2. Ініціалізація Application
     application = Application.builder().token(TOKEN).build()
-
-    # 3. Реєстрація обробників
+    
+    # 3. Реєстрація обробників (КРИТИЧНА СЕКЦІЯ - ТЕПЕРЬ ВСЕ ПІДКЛЮЧЕНО)
+    logger.info("Реєстрація обробників...")
+    
+    # Обробник для команди /start
     application.add_handler(CommandHandler("start", start))
+    
+    # Обробник для натискання інлайн-кнопок (CallbackQuery)
     application.add_handler(CallbackQueryHandler(button_handler))
-    application.add_handler(CommandHandler("hide", remove_keyboard))
     
-    # 4. Налаштування Webhook на стороні Telegram
-    # Встановлюємо, куди Telegram має надсилати оновлення
-    application.bot.set_webhook(url=WEBHOOK_URL + WEBHOOK_PATH)
+    # Обробник для команди /hide_keyboard (щоб можна було викликати remove_keyboard)
+    application.add_handler(CommandHandler("hide_keyboard", remove_keyboard))
     
-    # 5. Запуск сервера для прослуховування Webhooks
-    # url_path має співпадати з WEBHOOK_PATH без зовнішнього URL
-    application.run_webhook(
-        listen="0.0.0.0",
-        port=PORT,
-        url_path=TOKEN, # Слухаємо запити на шляху /<TOKEN>
-        webhook_url=WEBHOOK_URL, # Це базова URL для set_webhook (Render URL)
-    )
+    
+    # 4. Запуск додатка
+    if WEBHOOK_URL:
+        # --- Режим Webhook (для деплою на Render) ---
+        
+        # Порт для прослуховування (Render передає його в змінній PORT)
+        try:
+            PORT = int(os.environ.get("PORT", 8000))
+        except ValueError:
+            PORT = 8000
+        
+        logger.info(f"Бот налаштовує Webhook на {WEBHOOK_URL}/{TOKEN}...")
+        
+        # Встановлюємо Webhook
+        application.run_webhook(
+            listen="0.0.0.0",
+            port=PORT,
+            url_path=TOKEN, # Використовуємо токен як URL-шлях для безпеки
+            webhook_url=f"{WEBHOOK_URL}/{TOKEN}" # Повний URL для Telegram
+        )
+        
+        logger.info(f"Бот запущений в режимі Webhook на порту {PORT} з URL-шляхом /{TOKEN}")
+        
+    else:
+        # --- Режим Long Polling (для локальної розробки) ---
+        logger.info("WEBHOOK_URL не заданий. Бот запущений в режимі Long Polling.")
+        
+        # Видаляємо будь-які старі Webhook'и, щоб не було конфліктів
+        application.bot.delete_webhook() 
+        
+        application.run_polling(
+            allowed_updates=Update.ALL_TYPES 
+        )
 
-if __name__ == '__main__':
-    try:
-        main()
-    except Exception as e:
-        logger.critical(f"КРИТИЧНА ПОМИЛКА ПІД ЧАС ВИКОНАННЯ: {e}", exc_info=True)
-        # Додатковий вихід для Render, щоб він бачив, що сервіс впав
-        sys.exit(1)
 
+if __name__ == "__main__":
+    main()
