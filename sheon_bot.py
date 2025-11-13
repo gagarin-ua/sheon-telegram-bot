@@ -315,11 +315,11 @@ def main():
     application.bot.set_webhook(url=WEBHOOK_URL + WEBHOOK_PATH)
     
     # 5. Запуск сервера для прослуховування Webhooks
-    # urlpath має співпадати з WEBHOOK_PATH без зовнішнього URL
+    # url_path має співпадати з WEBHOOK_PATH без зовнішнього URL
     application.run_webhook(
         listen="0.0.0.0",
         port=PORT,
-        urlpath=TOKEN, # Слухаємо запити на шляху /<TOKEN>
+        url_path=TOKEN, # Слухаємо запити на шляху /<TOKEN>
         webhook_url=WEBHOOK_URL, # Це базова URL для set_webhook (Render URL)
     )
 
@@ -330,3 +330,4 @@ if __name__ == '__main__':
         logger.critical(f"КРИТИЧНА ПОМИЛКА ПІД ЧАС ВИКОНАННЯ: {e}", exc_info=True)
         # Додатковий вихід для Render, щоб він бачив, що сервіс впав
         sys.exit(1)
+
