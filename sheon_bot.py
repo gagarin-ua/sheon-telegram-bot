@@ -1,12 +1,30 @@
-import logging
 import os
-import sys
-#http://googleusercontent.com/immersive_entry_chip/1
-from dotenv import load_dotenv
-from http.server import BaseHTTPRequestHandler, HTTPServer
-from threading import Thread
-import telegram
+import logging
+import asyncio 
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler
+from telegram import Update, BotCommand, InlineKeyboardButton, InlineKeyboardMarkup
+
+# Настройка логирования
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
+)
+# Установим уровень логирования для библиотеки httpx, чтобы видеть только ошибки
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logger = logging.getLogger(__name__)
+
+# --- Константы и конфигурация ---
+# Токен и Webhook URL берутся из переменных окружения
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")
+
+# Простейшие заглушки для клавиатур и данных
+CALLBACK_DATA_STONES = "stones_data"
+KEYBOARD_MAIN = InlineKeyboardMarkup([
+    [InlineKeyboardButton("ІСТОРІЯ КАМІННЯ", callback_data=f"{CALLBACK_DATA_STONES}:history")],
+    [InlineKeyboardButton("Графік роботи", callback_data="info:schedule")],
+    [InlineKeyboardButton("Каталог і ціни", callback_data="info:catalog")],
+])
+# --- Конец констант ---
 
 print("--- ПЕРЕВІРКА 1: Імпорти завершено ---") # Активована перевірка
 
@@ -429,72 +447,116 @@ async def button_handler(update, context):
 # 4. ГОЛОВНА ФУНКЦІЯ ЗАПУСКУ
 # ----------------------------------------------------
 
-async def remove_keyboard(update, context):
-    """Приховує Custom Keyboard."""
-    reply_markup = telegram.ReplyKeyboardRemove()
+# --- Обработчики ---
+
+async def start_command(update: Update, context):
+    """Обробка команди /start та виведення головного меню."""
+    user_name = update.effective_user.first_name
+    welcome_text = (
+        f"Ласкаво просимо, {user_name}! "
+        "У світі автентичної біжутерії з натурального каміння SHEON! "
+        "Натисніть кнопку нижче, щоб почати."
+    )
+    
     await update.message.reply_text(
-        'Клавіатуру приховано. Для відновлення головного меню натисніть /start.',
-        reply_markup=reply_markup
+        welcome_text,
+        reply_markup=KEYBOARD_MAIN
     )
 
-def main():
-    """Запуск бота та фонового HTTP-сервера."""
-    if not TOKEN:
-        logging.error("BOT_TOKEN is not set. Exiting.")
-        sys.exit(1) # Вихід з помилкою, якщо токен відсутній
+async def handle_stones_callback(update: Update, context):
+    """Обробка натискань на кнопки (заглушка)."""
+    query = update.callback_query
+    await query.answer()
     
-    print("--- ПЕРЕВІРКА 3: Ініціалізація Application ---") # Активована перевірка
-    try:
-        application = Application.builder().token(TOKEN).build()
-    except Exception as e:
-        print(f"КРИТИЧНА ПОМИЛКА: Application.builder().token(TOKEN).build() завершився з помилкою: {e}")
-        sys.exit(1)
-
-
-    print("--- ПЕРЕВІРКА 4: Реєстрація обробників ---") # Активована перевірка
-    # Реєстрація обробників
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CallbackQueryHandler(button_handler))
-    application.add_handler(CommandHandler("hide", remove_keyboard))
+    # Розбираємо дані колбека
+    callback_type, action = query.data.split(':', 1)
     
-    # --- БЛОК: Запуск фіктивного HTTP-сервера для Render Health Check ---
+    response_text = f"Ви обрали дію: *{action.upper()}*.\n"
     
-    # 1. Визначення порту (Render надає його через змінну середовища)
-    # Використовуємо 0.0.0.0, щоб слухати на всіх інтерфейсах
-    PORT = 8080
-    try:
-        PORT = int(os.environ.get("PORT", 8080))
+    if action == 'history':
+        response_text += "Тут буде інформація об історії каменів і їх властивостях. Будь ласка, виберіть цікавий для вас камінь з меню."
+    elif action == 'catalog':
+        response_text += "Тут буде посилання на каталог і ціни."
+    elif action == 'schedule':
+        response_text += "Графік роботи: ПН-ПТ з 10:00 до 18:00."
+    else:
+        response_text += "Ця функція поки що в розробці."
         
-        # 2. Запуск HTTP-сервера у фоновому потоці
-        web_server = HTTPServer(("0.0.0.0", PORT), HealthCheckHandler)
-        server_thread = Thread(target=web_server.serve_forever)
-        server_thread.daemon = True # Дозволяє потоку завершитися, якщо основний потік завершиться
-        server_thread.start()
-        logging.info(f"HTTP Server started on port {PORT} for Render health checks")
-        print(f"--- ПЕРЕВІРКА 5: HTTP Server запущено на порту {PORT} ---") # Активована перевірка
+    # Всегда показываем KEYBOARD_MAIN, кроме случая с 'history', где мы будем 
+    # вводить дополнительную клавиатуру.
+    reply_markup = KEYBOARD_MAIN
+    if action == 'history':
+        # Для "ІСТОРІЯ КАМІННЯ" мы пока просто не показываем клавиатуру
+        reply_markup = None 
+        
+    await query.edit_message_text(
+        text=response_text,
+        reply_markup=reply_markup,
+        parse_mode="Markdown"
+    )
+
+# --- Основная функция ---
+
+def main():
+    """Основная функция для запуска бота."""
     
-    except Exception as e:
-        logging.error(f"Failed to start HTTP server on port {PORT}: {e}")
-        print(f"--- КРИТИЧНА ПОМИЛКА: Не вдалося запустити HTTP-сервер: {e} ---") # Активована перевірка
-    
-    # 3. Запуск бота (використання Long Polling)
-    logging.info("Starting Telegram Bot (Long Polling)...")
-    print("--- ПЕРЕВІРКА 6: Запуск Long Polling... ---") # Активована перевірка
-    application.run_polling(poll_interval=1)
-    print("--- ПЕРЕВІРКА 7: Long Polling завершено (зазвичай, не досягається) ---") # Активована перевірка
+    if not BOT_TOKEN:
+        logger.error("КРИТИЧНА ПОМИЛКА: BOT_TOKEN не знайдено. Перевірте змінні оточення.")
+        return
+
+    # 1. Создание Application
+    application = Application.builder().token(BOT_TOKEN).build()
+
+    # 2. Регистрация обработчиков (Handlers)
+    application.add_handler(CommandHandler("start", start_command))
+    # Обработка всех кнопок, чьи callback_data начинаются с 'stones_data:' или 'info:'
+    application.add_handler(CallbackQueryHandler(handle_stones_callback, pattern=r'^(stones_data|info):\w+'))
+
+    # 3. Запуск бота (вебхуки или опрос)
+    if WEBHOOK_URL:
+        # --- Режим Webhook (для Render Web Service) ---
+        PORT = int(os.environ.get('PORT', 8000))
+        # URL_PATH должен совпадать с тем, куда Telegram будет отправлять обновления.
+        # Используем токен, чтобы сделать URL_PATH уникальным и безопасным
+        URL_PATH = BOT_TOKEN 
+        
+        logger.info(f"ПЕРЕВІРКА 4: Бот запущен в режиме Webhook. Слухаємо на порту {PORT}")
+        
+        # Запускаем асинхронный HTTP-сервер для Webhook
+        application.run_webhook(
+            listen="0.0.0.0",
+            port=PORT,
+            url_path=URL_PATH,
+            webhook_url=f"{WEBHOOK_URL}/{URL_PATH}",
+            # Сброс старых вебхуков, чтобы избежать конфликтов при перезапуске
+            drop_pending_updates=True
+        )
+
+        # КРИТИЧЕСКОЕ ИЗМЕНЕНИЕ: Блокировка процесса для Render.
+        # Это предотвращает немедленное завершение процесса Render.
+        try:
+            # Получаем цикл событий, который уже запущен run_webhook
+            loop = asyncio.get_event_loop()
+            logger.info("ПЕРЕВІРКА 5: Запуск основного цикла ожидания (run_forever).")
+            # Запускаем цикл на ожидание, пока его не прервет внешний сигнал (например, Render)
+            loop.run_forever()
+        except KeyboardInterrupt:
+            logger.info("Процесс Webhook остановлен пользователем.")
+        except Exception as e:
+            logger.error(f"Критична помилка Webhook: {e}")
+        finally:
+            # Остановка приложения Telegram
+            logger.info("ПЕРЕВІРКА 6: Остановка приложения.")
+            # Сначала пытаемся остановить Telegram-приложение
+            loop.run_until_complete(application.stop())
+            logger.info("ПЕРЕВІРКА 7: Приложение успешно остановлено.")
+
+
+    else:
+        # --- Режим Long Polling (для локальной разработки) ---
+        logger.info("Бот запущен в режиме Long Polling (локальна розробка).")
+        application.run_polling(allowed_updates=Update.ALL_TYPES)
+
 
 if __name__ == '__main__':
-    # Додаємо try...except для перехоплення помилок, пов'язаних з підключенням
-    try:
-        main()
-    except Exception as e:
-        print(f"КРИТИЧНА ПОМИЛКА ПІД ЧАС ВИКОНАННЯ: {e}")
-        # Виведемо більш детальні дані про токен, якщо він не спрацював
-        if 'token' in str(e).lower() and not TOKEN:
-             print("Перевірка токена на етапі запуску: токен не був визначений.")
-        elif 'token' in str(e).lower() and TOKEN:
-             print("Перевірка токена на етапі запуску: токен знайдено, але він, ймовірно, недійсний.")
-        elif 'Name or service not known' in str(e) or 'getaddrinfo failed' in str(e):
-             print("Помилка мережі: Не вдалося підключитися до серверів Telegram. Перевірте підключення до Інтернету або налаштування проксі на сервері.")
-        # Додаємо вихід, щоб Render не тримав мертвий процес
-        sys.exit(1)
+    main()
