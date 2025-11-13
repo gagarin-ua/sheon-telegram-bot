@@ -1,47 +1,18 @@
-import logging
-import os
-import sys
-from dotenv import load_dotenv
-from http.server import BaseHTTPRequestHandler, HTTPServer
-from threading import Thread
+# запуск через PowerSell -> 
+# PS C:\WINDOWS\system32> cd "D:\SHEON_py"
+# PS D:\SHEON_py> python sheon_bot.py
+# остановка Ctrl+C
+
 import telegram
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler
-# ----------------------------------------------------
-# --- НАЛАШТУВАННЯ ЛОГУВАННЯ ТА ЗМІННИХ СЕРЕДОВИЩА ---
-# ----------------------------------------------------
+import logging
 
-# Завантаження змінних середовища з .env (для локального тестування)
-load_dotenv()
+TOKEN = "8346974811:AAFqa5h_y-aCvepHELztidKg8W2Qp0oPzUs"
 
-# Отримання токена з Render Environment Variables
-TOKEN = os.getenv("BOT_TOKEN") 
-
-if not TOKEN:
-    print("--------------------------------------------------")
-    print("КРИТИЧНА ПОМИЛКА: Не вдалося знайти Telegram TOKEN.")
-    print("Перевірте, що файл .env існує і містить рядок: TOKEN=ВАШ_ТОКЕН")
-    print("--------------------------------------------------")
-    # Припиняємо виконання, якщо токен відсутній
-    sys.exit(1)
-    
 # Встановлення базового логування
 logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
 )
-
-# --- КЛАС ДЛЯ HEALTH CHECK RENDER ---
-class HealthCheckHandler(BaseHTTPRequestHandler):
-    """
-    Мінімалістичний HTTP-сервер, який відповідає OK на запити Render.
-    Це дозволяє Web Service залишатися активним, щоб уникнути Timed out.
-    """
-    def do_GET(self):
-        self.send_response(200)
-        self.send_header("Content-type", "text/html")
-        self.end_headers()
-        self.wfile.write(bytes("OK", "utf8"))
-        pass
 
 # ----------------------------------------------------
 # 2. ФУНКЦІЯ, що викликається при команді /start
@@ -430,51 +401,16 @@ async def remove_keyboard(update, context):
     )
 
 def main():
-    """Запуск бота та фонового HTTP-сервера."""
-    if not TOKEN:
-        logging.error("BOT_TOKEN is not set. Exiting.")
-        sys.exit(1) # Вихід з помилкою, якщо токен відсутній
-
+    """Запуск бота."""
     application = Application.builder().token(TOKEN).build()
 
-    # Реєстрація обробників
+    # Реєструємо обробник для команди /start
     application.add_handler(CommandHandler("start", start))
+    
+    # РЕЄСТРУЄМО ОБРОБНИК ДЛЯ КНОПОК
     application.add_handler(CallbackQueryHandler(button_handler))
     application.add_handler(CommandHandler("hide", remove_keyboard))
-    
-    # --- БЛОК: Запуск фіктивного HTTP-сервера для Render Health Check ---
-    
-    # 1. Визначення порту (Render надає його через змінну середовища)
-    # Використовуємо 0.0.0.0, щоб слухати на всіх інтерфейсах
-    try:
-        PORT = int(os.environ.get("PORT", 8080))
-        
-        # 2. Запуск HTTP-сервера у фоновому потоці
-        web_server = HTTPServer(("0.0.0.0", PORT), HealthCheckHandler)
-        server_thread = Thread(target=web_server.serve_forever)
-        server_thread.daemon = True # Дозволяє потоку завершитися, якщо основний потік завершиться
-        server_thread.start()
-        logging.info(f"HTTP Server started on port {PORT} for Render health checks")
-    
-    except Exception as e:
-        logging.error(f"Failed to start HTTP server on port {PORT}: {e}")
-    
-    # 3. Запуск бота (використання Long Polling)
-    logging.info("Starting Telegram Bot (Long Polling)...")
-    application.run_polling(poll_interval=1)
+    application.run_polling()
 
 if __name__ == '__main__':
-    # Додаємо try...except для перехоплення помилок, пов'язаних з підключенням
-    try:
-        main()
-    except Exception as e:
-        print(f"КРИТИЧНА ПОМИЛКА ПІД ЧАС ВИКОНАННЯ: {e}")
-        # Виведемо більш детальні дані про токен, якщо він не спрацював
-        if 'token' in str(e).lower() and not TOKEN:
-             print("Перевірка токена на етапі запуску: токен не був визначений.")
-        elif 'token' in str(e).lower() and TOKEN:
-             print("Перевірка токена на етапі запуску: токен знайдено, але він, ймовірно, недійсний.")
-        elif 'Name or service not known' in str(e) or 'getaddrinfo failed' in str(e):
-             print("Помилка мережі: Не вдалося підключитися до серверів Telegram. Перевірте підключення до Інтернету або налаштування проксі на сервері.")
-
-
+    main()
