@@ -6,7 +6,6 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from threading import Thread
 import telegram
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler
-
 # ----------------------------------------------------
 # --- НАЛАШТУВАННЯ ЛОГУВАННЯ ТА ЗМІННИХ СЕРЕДОВИЩА ---
 # ----------------------------------------------------
