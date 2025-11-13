@@ -12,7 +12,6 @@ from telegram.ext import (
     filters
 )
 from telegram import (
-    ReplyKeyboardRemove,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     Update
@@ -22,7 +21,7 @@ from telegram import (
 # --- НАЛАШТУВАННЯ ЛОГУВАННЯ ТА ЗМІННИХ СЕРЕДОВИЩА ---
 # ----------------------------------------------------
 
-# Завантаження змінних середовища з .env (для локального тестування)
+# Завантаження змінних середовища з .env (для локального тестування, якщо потрібно)
 load_dotenv()
 
 # Отримання токена та URL
@@ -31,16 +30,6 @@ TOKEN = os.getenv("BOT_TOKEN")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL") or os.getenv("RENDER_EXTERNAL_URL")
 PORT = int(os.getenv("PORT", "8080")) # Порт, який надає Render
 WEBHOOK_PATH = f"/{TOKEN}" # Використовуємо токен як унікальний шлях
-
-if not TOKEN or not WEBHOOK_URL:
-    print("-------------------------------------------------------------------------------------")
-    if not TOKEN:
-        print("КРИТИЧНА ПОМИЛКА: Не вдалося знайти Telegram TOKEN (перевірте BOT_TOKEN).")
-    if not WEBHOOK_URL:
-        print("КРИТИЧНА ПОМИЛКА: Не вдалося знайти WEBHOOK_URL (перевірте WEBHOOK_URL або RENDER_EXTERNAL_URL).")
-        print("Для Webhooks потрібно знати зовнішню адресу сервісу.")
-    print("-------------------------------------------------------------------------------------")
-    # Дозволяємо системі продовжити, але з помилкою (для чистоти коду ми продовжимо запуск у main)
 
 # Встановлення базового логування
 logging.basicConfig(
@@ -102,8 +91,6 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     """Обробляє команду /start, надсилаючи головне меню."""
     welcome_text = get_main_menu_text()
     reply_markup = get_main_menu_keyboard()
-    
-    # Використовуємо .message.reply_text для нової команди /start
     await update.message.reply_text(welcome_text, reply_markup=reply_markup, parse_mode='Markdown')
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -111,22 +98,19 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     await update.message.reply_text(
         "Я бот магазину SHEON. Натисніть /start, щоб відкрити головне меню з каталогом та інформацією."
     )
-
-async def remove_keyboard_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Приховує ReplyKeyboard (хоча ви використовуєте InlineKeyboardMarkup)."""
-    reply_markup = ReplyKeyboardRemove()
+    
+async def unknown_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Обробляє будь-яке текстове повідомлення, яке не є командою або callback'ом."""
     await update.message.reply_text(
-        'Клавіатуру приховано. Для відновлення головного меню натисніть /start.',
-        reply_markup=reply_markup
+        "Вибачте, я розумію лише команди (/start) або кнопки меню. Натисніть /start, щоб повернутися до головного меню."
     )
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Обробляє натискання на інлайн-кнопки (callback query)."""
     query = update.callback_query
-    # Завжди відповідаємо на запит, щоб прибрати індикацію завантаження
     await query.answer()
 
-    # Створюємо кнопку для повернення до меню каміння
+    # Створюємо кнопки для повернення
     back_to_stones_button = [[InlineKeyboardButton("⬅️ Назад до Списку Каміння", callback_data='stones_menu')]]
     back_to_menu_button = [[InlineKeyboardButton("⬅️ Повернутися до Меню", callback_data='menu_back')]]
     
@@ -229,7 +213,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     elif query.data == 'care_memo_part2':
         part2_text = (
             "2. ЗБЕРІГАННЯ ТА ДОГЛЯД\n\n"
-            "Зберігання\n"
             "Зберігайте прикраси окремо:\n"
             "- У м’яких мішечках або скриньках із перегородками, щоб уникнути подряпин.\n"
             "- Уникайте прямого сонця, надмірної вологості або пересушеного повітря.\n\n"
@@ -266,52 +249,48 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 # ----------------------------------------------------
 
 async def main() -> None:
-    """Запускає бота в режимі Webhook або завершує роботу, якщо немає токена."""
+    """Запускає бота в режимі Webhook. Завершує роботу, якщо не знайдено TOKEN або URL."""
     
     if not TOKEN:
-        logger.critical("КРИТИЧНА ПОМИЛКА: Не вдалося знайти Telegram TOKEN.")
+        logger.critical("КРИТИЧНА ПОМИЛКА: Не вдалося знайти Telegram TOKEN (перевірте BOT_TOKEN).")
         sys.exit(1)
+        
+    if not WEBHOOK_URL:
+        logger.critical("КРИТИЧНА ПОМИЛКА: Не вдалося знайти WEBHOOK_URL. Неможливо запустити в режимі Webhook на Render.")
+        logger.info("Для локального тестування використовуйте режим Long Polling, але для Render Webhook URL обов'язковий.")
+        sys.exit(1)
+
 
     application = Application.builder().token(TOKEN).build()
     
     # Реєстрація всіх обробників
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("help", help_command))
-    application.add_handler(CommandHandler("remove", remove_keyboard_command)) # Обробник для приховання клавіатури
     application.add_handler(CallbackQueryHandler(button_handler)) # Обробник для всіх inline-кнопок
+    # Обробник для будь-якого тексту, який не є командою або кнопкою
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, unknown_message))
     
-    if WEBHOOK_URL:
-        # --- Режим Webhook (для деплою на Render) ---
-        full_webhook_url = f"{WEBHOOK_URL}{WEBHOOK_PATH}"
+    # --- Режим Webhook (для деплою на Render) ---
+    full_webhook_url = f"{WEBHOOK_URL}{WEBHOOK_PATH}"
 
-        # Встановлюємо Webhook
-        logger.info(f"Встановлення Webhook: {full_webhook_url}")
-        await application.bot.set_webhook(
-            url=full_webhook_url,
-            drop_pending_updates=True # Викидаємо старі оновлення
-        )
+    # Встановлюємо Webhook
+    logger.info(f"Встановлення Webhook: {full_webhook_url}")
+    await application.bot.set_webhook(
+        url=full_webhook_url,
+        drop_pending_updates=True # Викидаємо старі оновлення
+    )
 
-        # Запускаємо веб-сервер
-        logger.info(f"Запуск Webhook-сервера на 0.0.0.0:{PORT} з шляхом {WEBHOOK_PATH}")
-        await application.run_webhook(
-            listen="0.0.0.0",
-            port=PORT,
-            url_path=WEBHOOK_PATH
-        )
-        
-        # Забезпечуємо, що процес Python не завершиться, очікуючи Webhook-запитів
-        while True:
-            await asyncio.sleep(60)
-            
-    else:
-        # --- Режим Long Polling (для локальної розробки, якщо WEBHOOK_URL не встановлено) ---
-        logger.warning("WEBHOOK_URL не заданий. Бот запущен в режимі Long Polling (для локального тестування).")
-        
-        # Видаляємо старий Webhook, якщо він був встановлений
-        await application.bot.delete_webhook(drop_pending_updates=True)
-        
-        # Запускаємо Long Polling
-        application.run_polling(allowed_updates=Update.ALL_TYPES)
+    # Запускаємо веб-сервер
+    logger.info(f"Запуск Webhook-сервера на 0.0.0.0:{PORT} з шляхом {WEBHOOK_PATH}")
+    await application.run_webhook(
+        listen="0.0.0.0",
+        port=PORT,
+        url_path=WEBHOOK_PATH
+    )
+    
+    # Забезпечуємо, що процес Python не завершиться, очікуючи Webhook-запитів
+    while True:
+        await asyncio.sleep(60) # Просто тримаємо процес активним
 
 
 if __name__ == "__main__":
