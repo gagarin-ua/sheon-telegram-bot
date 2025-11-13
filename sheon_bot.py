@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+import asyncio
 from dotenv import load_dotenv
 import telegram
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler
@@ -332,3 +333,4 @@ if __name__ == '__main__':
     except Exception as e:
         logger.critical(f"КРИТИЧНА ПОМИЛКА ПІД ЧАС ВИКОНАННЯ: {e}", exc_info=True)
         sys.exit(1)
+
