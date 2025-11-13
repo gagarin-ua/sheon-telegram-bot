@@ -333,4 +333,3 @@ if __name__ == '__main__':
     except Exception as e:
         logger.critical(f"КРИТИЧНА ПОМИЛКА ПІД ЧАС ВИКОНАННЯ: {e}", exc_info=True)
         sys.exit(1)
-
