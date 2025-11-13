@@ -251,28 +251,28 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 # ----------------------------------------------------
 # --- ГОЛОВНА АСИНХРОННА ФУНКЦІЯ ЗАПУСКУ (ФІНАЛЬНЕ ВИПРАВЛЕННЯ) ---
 # ----------------------------------------------------
-async def start_webhook_server(application: Application):
-    """Устанавливает webhook и запускает веб-сервер."""
+#async def start_webhook_server(application: Application):
+#   """Устанавливает webhook и запускает веб-сервер."""
      
-    full_webhook_url = f"{WEBHOOK_URL}{WEBHOOK_PATH}"
+ #   full_webhook_url = f"{WEBHOOK_URL}{WEBHOOK_PATH}"
  
     # 1. Устанавливаем Webhook
-    logger.info(f"Установка Webhook: {full_webhook_url}")
-    await application.bot.set_webhook(
-        url=full_webhook_url,
-        drop_pending_updates=True
-    )
+ #   logger.info(f"Установка Webhook: {full_webhook_url}")
+  #  await application.bot.set_webhook(
+  #      url=full_webhook_url,
+  #      drop_pending_updates=True
+  #  )
  
      # 2. Запускаем веб-сервер
-    logger.info(f"Запуск Webhook-сервера на 0.0.0.0:{PORT} с путем {WEBHOOK_PATH}")
+#    logger.info(f"Запуск Webhook-сервера на 0.0.0.0:{PORT} с путем {WEBHOOK_PATH}")
      
      # Запускаем run_webhook в фоновом режиме
-    await application.run_webhook(
-        listen="0.0.0.0",
-        port=PORT,
-        url_path=WEBHOOK_PATH,
-        webhook_url=full_webhook_url # Добавляем этот параметр для надежности
-    )
+ #   await application.run_webhook(
+ #       listen="0.0.0.0",
+ #       port=PORT,
+  #      url_path=WEBHOOK_PATH,
+   #     webhook_url=full_webhook_url # Добавляем этот параметр для надежности
+  #  )
  
  # ----------------------------------------------------
  # --- ЗАПУСК КОДА ---
@@ -303,10 +303,11 @@ if __name__ == "__main__":
         loop.run_until_complete(start_webhook_server(application))
          
         # Держать процесс активным, пока Webhook-сервер работает
-        loop.run_forever()
+    #    loop.run_forever()
  
-    except Exception as e:
+ #   except Exception as e:
          # Выводим более подробный трейсбек для отладки
-        logger.critical(f"Критична помилка при запуску: {e}", exc_info=True)
-        sys.exit(1)
+ #       logger.critical(f"Критична помилка при запуску: {e}", exc_info=True)
+ #       sys.exit(1)
+
 
