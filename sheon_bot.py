@@ -1,6 +1,7 @@
 import os
 #import telebot
 import telegram
+from telegram import Bot
 from flask import Flask, request, abort
 import logging
 
@@ -21,7 +22,7 @@ if not BOT_TOKEN:
     exit()
 
 # Инициализация бота
-bot = telebot.TeleBot(BOT_TOKEN)
+bot = Bot(BOT_TOKEN)
 
 # ===============================================
 # Обработчики команд и сообщений бота
@@ -107,6 +108,7 @@ else:
         bot.polling(none_stop=True)
     except Exception as e:
         logging.error(f"Ошибка при запуске в режиме Polling: {e}")
+
 
 
 
