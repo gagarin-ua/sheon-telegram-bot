@@ -1,5 +1,5 @@
 import os
-import telebot
+#import telebot
 import telrgram
 from flask import Flask, request, abort
 import logging
@@ -107,4 +107,5 @@ else:
         bot.polling(none_stop=True)
     except Exception as e:
         logging.error(f"Ошибка при запуске в режиме Polling: {e}")
+
 
