@@ -3,6 +3,7 @@ import telegram
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler
 import logging
 
+
 # --- КОНФІГУРАЦІЯ BOT API ТА WEBHOOK ---
 # УВАГА: Для продакшену рекомендується зберігати TOKEN як змінну оточення.
 TOKEN = os.getenv("BOT_TOKEN")
@@ -440,3 +441,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
