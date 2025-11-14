@@ -3,6 +3,7 @@ import os
 import telegram
 from telegram import Bot
 from flask import Flask, request, abort
+from telegram.ext import Application, CommandHandler
 import logging
 
 # Установка уровня логирования
@@ -22,12 +23,19 @@ if not BOT_TOKEN:
     exit()
 
 # Инициализация бота
-bot = Bot(BOT_TOKEN)
+application = Application.builder().token(BOT_TOKEN).build()
+
+# Регистрируем обработчик команды /start
+application.add_handler(CommandHandler("start", start_command))
 
 # ===============================================
 # Обработчики команд и сообщений бота
 # ===============================================
 
+async def start_command(update, context):
+    """Отвечает на команду /start."""
+    await update.message.reply_text('Привет! Я твой бот.')
+    
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     """
@@ -108,6 +116,7 @@ else:
         bot.polling(none_stop=True)
     except Exception as e:
         logging.error(f"Ошибка при запуске в режиме Polling: {e}")
+
 
 
 
