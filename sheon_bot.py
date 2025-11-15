@@ -15,7 +15,7 @@ PORT = int(os.environ.get("PORT", "8000"))
 WEBHOOK_URL = "https://sheon-telegram-bot.onrender.com" 
 
 # Визначаємо шлях, який бот прослуховуватиме. Використовуйте секретний шлях!
-WEBHOOK_PATH = TOKEN 
+WEBHOOK_PATH = f"/webhook/{TOKEN}"  
 
 # Встановлення базового логування
 logging.basicConfig(
@@ -57,7 +57,6 @@ async def start(update, context):
 
 # ----------------------------------------------------
 # 3. ФУНКЦІЯ ОБРОБКИ КНОПОК (CallbackQueryHandler)
-# (Цей блок залишається без змін)
 # ----------------------------------------------------
 async def button_handler(update, context):
     query = update.callback_query
@@ -441,4 +440,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
