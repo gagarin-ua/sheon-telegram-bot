@@ -196,8 +196,8 @@ async def handle_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # СУПЕР-ПРОСТАЯ клавиатура
  #   care_memo_keyboard = [
-        [InlineKeyboardButton("ТЕСТ 1", callback_data='care_memo_part1')],
-        [InlineKeyboardButton("ТЕСТ 2", callback_data='care_memo_part2')],
+ #       [InlineKeyboardButton("ТЕСТ 1", callback_data='care_memo_part1')],
+ #       [InlineKeyboardButton("ТЕСТ 2", callback_data='care_memo_part2')],
  #   ]
     
     # СУПЕР-ПРОСТОЙ текст
@@ -292,3 +292,4 @@ async def handle_care_memo_part2(update: Update, context: ContextTypes.DEFAULT_T
         reply_markup=InlineKeyboardMarkup(back_button)
 
     )
+
