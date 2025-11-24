@@ -103,8 +103,10 @@ CARE_MEMO_PART2_TEXT = (
 # --- ОБРОБНИКИ МЕНЮ ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обробник команди /start з підтримкою deep linking"""
+    print(f"🔍 START CALLED. Args: {context.args}, Message: {update.message}")
     if context.args and context.args[0] == "care":
-        return await handle_care_memo_direct(update, context)  # ← ИСПОЛЬЗУЕМ СУЩЕСТВУЮЩИЙ
+        print("🎯 DEEP LINK 'care' TRIGGERED")
+        return await handle_care_memo_direct(update, context)
     
     await update.message.reply_text(
         WELCOME_TEXT, 
@@ -249,4 +251,5 @@ async def handle_care_memo_part2(update: Update, context: ContextTypes.DEFAULT_T
         text=CARE_MEMO_PART2_TEXT,
         reply_markup=InlineKeyboardMarkup(back_button)
     )
+
 
