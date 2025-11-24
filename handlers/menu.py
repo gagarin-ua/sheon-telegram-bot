@@ -102,23 +102,34 @@ CARE_MEMO_PART2_TEXT = (
 )
 # --- ОБРОБНИКИ МЕНЮ ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обробник команди /start"""
     """Обробник команди /start з підтримкою deep linking"""
     if context.args and context.args[0] == "care":
-        # Відкриваємо розділ "Пам'ятка по догляду" напряму
-        from handlers.menu import get_care_guide_keyboard
-        keyboard = get_care_guide_keyboard()
-        await update.message.reply_text(
-            "📖 *ПАМ'ЯТКА ПО ДОГЛЯДУ*\\n\\nОберіть розділ:",
-            reply_markup=keyboard,
-            parse_mode='Markdown'
-        )
-        return
+        return await handle_care_memo(update, context)  # ← ИСПОЛЬЗУЕМ СУЩЕСТВУЮЩИЙ
+    
     await update.message.reply_text(
         WELCOME_TEXT, 
         reply_markup=get_main_menu_keyboard(), 
         parse_mode='Markdown'
     )
+
+#async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+#    """Обробник команди /start"""
+#    """Обробник команди /start з підтримкою deep linking"""
+#    if context.args and context.args[0] == "care":
+#        # Відкриваємо розділ "Пам'ятка по догляду" напряму
+#        from handlers.menu import get_care_guide_keyboard
+#        keyboard = get_care_guide_keyboard()
+#        await update.message.reply_text(
+#            "📖 *ПАМ'ЯТКА ПО ДОГЛЯДУ*\\n\\nОберіть розділ:",
+#            reply_markup=keyboard,
+#            parse_mode='Markdown'
+#        )
+#        return
+#    await update.message.reply_text(
+#        WELCOME_TEXT, 
+#        reply_markup=get_main_menu_keyboard(), 
+#        parse_mode='Markdown'
+#    )
 
 async def handle_menu_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Повернення в головне меню"""
@@ -290,6 +301,4 @@ async def handle_care_memo_part2(update: Update, context: ContextTypes.DEFAULT_T
         query=query,
         text=CARE_MEMO_PART2_TEXT,
         reply_markup=InlineKeyboardMarkup(back_button)
-
     )
-
