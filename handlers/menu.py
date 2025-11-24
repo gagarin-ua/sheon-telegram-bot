@@ -103,6 +103,17 @@ CARE_MEMO_PART2_TEXT = (
 # --- ОБРОБНИКИ МЕНЮ ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обробник команди /start"""
+    """Обробник команди /start з підтримкою deep linking"""
+    if context.args and context.args[0] == "care":
+        # Відкриваємо розділ "Пам'ятка по догляду" напряму
+        from handlers.menu import get_care_guide_keyboard
+        keyboard = get_care_guide_keyboard()
+        await update.message.reply_text(
+            "📖 *ПАМ'ЯТКА ПО ДОГЛЯДУ*\\n\\nОберіть розділ:",
+            reply_markup=keyboard,
+            parse_mode='Markdown'
+        )
+        return
     await update.message.reply_text(
         WELCOME_TEXT, 
         reply_markup=get_main_menu_keyboard(), 
@@ -173,120 +184,72 @@ async def handle_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text=CONTACT_TEXT,
         reply_markup=InlineKeyboardMarkup(contact_keyboard)
     )
-async def handle_care_memo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Пам'ятка по догляду - ДИАГНОСТИКА"""
-    query = update.callback_query
-    print("🟢 ДИАГНОСТИКА: handle_care_memo ВЫЗВАНА!")
-    print(f"🔴 callback_data: {query.data}")
-    print(f"🔴 Message ID: {query.message.message_id}")
-    print(f"🔴 Chat ID: {query.message.chat_id}")
+#async def handle_care_memo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+#3    """Пам'ятка по догляду - ДИАГНОСТИКА"""
+#    query = update.callback_query
+#    print("🟢 ДИАГНОСТИКА: handle_care_memo ВЫЗВАНА!")
+#    print(f"🔴 callback_data: {query.data}")
+#    print(f"🔴 Message ID: {query.message.message_id}")
+#    print(f"🔴 Chat ID: {query.message.chat_id}")
     
-    await query.answer("Обрабатываю запрос...")
+ #   await query.answer("Обрабатываю запрос...")
     
     # СУПЕР-ПРОСТАЯ клавиатура
-    care_memo_keyboard = [
+ #   care_memo_keyboard = [
         [InlineKeyboardButton("ТЕСТ 1", callback_data='care_memo_part1')],
         [InlineKeyboardButton("ТЕСТ 2", callback_data='care_memo_part2')],
-    ]
+ #   ]
     
     # СУПЕР-ПРОСТОЙ текст
-    simple_text = "ТЕСТ"
+ #   simple_text = "ТЕСТ"
     
-    try:
-        print("🟡 Пытаемся отправить САМОЕ ПРОСТОЕ сообщение...")
-        result = await query.edit_message_text(
-            text=simple_text,
-            reply_markup=InlineKeyboardMarkup(care_memo_keyboard)
+ #   try:
+ #       print("🟡 Пытаемся отправить САМОЕ ПРОСТОЕ сообщение...")
+ #       result = await query.edit_message_text(
+ #           text=simple_text,
+ #           reply_markup=InlineKeyboardMarkup(care_memo_keyboard)
             # НИКАКОГО parse_mode!
-        )
-        print("✅ УСПЕХ: Сообщение отредактировано!")
-        return result
-    except Exception as e:
-        print(f"🔴 ОШИБКА: {e}")
-        print(f"🔴 Тип ошибки: {type(e)}")
+ #       )
+ #       print("✅ УСПЕХ: Сообщение отредактировано!")
+ #       return result
+ #   except Exception as e:
+ #       print(f"🔴 ОШИБКА: {e}")
+ #       print(f"🔴 Тип ошибки: {type(e)}")
         # Попробуем отправить новое сообщение вместо редактирования
-        try:
-            print("🟡 Пробуем отправить НОВОЕ сообщение...")
-            await query.message.reply_text(
-                text="НОВОЕ СООБЩЕНИЕ: ТЕСТ",
-                reply_markup=InlineKeyboardMarkup(care_memo_keyboard)
-            )
-            print("✅ УСПЕХ: Новое сообщение отправлено!")
-        except Exception as e2:
-            print(f"🔴 ОШИБКА и в новом сообщении: {e2}")
-        return None
-# async def handle_care_memo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # """Пам'ятка по догляду - главное меню"""
-    # query = update.callback_query
-    # print(f"🔴 ПОЛУЧЕН callback_data: {query.data}")
-    # print(f"🔴 Message ID: {query.message.message_id}")
-    # print(f"🔴 Chat ID: {query.message.chat_id}")
-    
-    # await query.answer()
-    
-    # # Простейшая клавиатура для теста
-    # care_memo_keyboard = [
-        # [InlineKeyboardButton("ТЕСТ Кнопка 1", callback_data='care_memo_part1')],
-        # [InlineKeyboardButton("ТЕСТ Кнопка 2", callback_data='care_memo_part2')],
-    # ]
-    
-    # # Простейший текст
-    # simple_text = "ТЕСТОВЫЙ ТЕКСТ"
-    
-    # try:
-        # print("🟡 Пытаемся редактировать сообщение...")
-        # result = await query.edit_message_text(
-            # text=simple_text,
-            # reply_markup=InlineKeyboardMarkup(care_memo_keyboard),
-            # parse_mode=None  # Без Markdown
-        # )
-        # print("✅ Сообщение успешно отредактировано!")
-        # return result
-    # except Exception as e:
-        # print(f"🔴 КРИТИЧЕСКАЯ ОШИБКА: {e}")
-        # print(f"🔴 Тип ошибки: {type(e)}")
-        # return None
+ #       try:
+ #           print("🟡 Пробуем отправить НОВОЕ сообщение...")
+ #           await query.message.reply_text(
+ #               text="НОВОЕ СООБЩЕНИЕ: ТЕСТ",
+ #               reply_markup=InlineKeyboardMarkup(care_memo_keyboard)
+ #           )
+ #           print("✅ УСПЕХ: Новое сообщение отправлено!")
+ #       except Exception as e2:
+ #           print(f"🔴 ОШИБКА и в новом сообщении: {e2}")
+ #       return None
 
-# async def handle_care_memo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # """Пам'ятка по догляду - главное меню"""
-    # query = update.callback_query
-    # await query.answer()
+#async def handle_care_memo_part1(update: Update, context: ContextTypes.DEFAULT_TYPE):
+ #   """Часть 1 памятки"""
+ #   query = update.callback_query
+ #   await query.answer()
     
-    # care_memo_keyboard = [
-        # [InlineKeyboardButton("1. Повсякденне користування", callback_data='care_memo_part1')],
-        # [InlineKeyboardButton("2. Зберігання та Догляд", callback_data='care_memo_part2')],
-        # [InlineKeyboardButton("⬅️ Повернутися до Меню", callback_data='menu_back')]
-    # ]
-    
-    # await safe_edit_message(
-        # query=query,
-        # text=CARE_MEMO_INTRO_TEXT,
-        # reply_markup=InlineKeyboardMarkup(care_memo_keyboard)
-    # )
+ #   back_button = [[InlineKeyboardButton("⬅️ Назад до Пам'ятки", callback_data='care_memo')]]
+ #   await safe_edit_message(
+ #       query=query,
+ #       text=CARE_MEMO_PART1_TEXT,
+ #       reply_markup=InlineKeyboardMarkup(back_button)
+ #   )
 
-async def handle_care_memo_part1(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Часть 1 памятки"""
-    query = update.callback_query
-    await query.answer()
+#async def handle_care_memo_part2(update: Update, context: ContextTypes.DEFAULT_TYPE):
+ #   """Часть 2 памятки"""
+ #   query = update.callback_query
+ #   await query.answer()
     
-    back_button = [[InlineKeyboardButton("⬅️ Назад до Пам'ятки", callback_data='care_memo')]]
-    await safe_edit_message(
-        query=query,
-        text=CARE_MEMO_PART1_TEXT,
-        reply_markup=InlineKeyboardMarkup(back_button)
-    )
-
-async def handle_care_memo_part2(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Часть 2 памятки"""
-    query = update.callback_query
-    await query.answer()
-    
-    back_button = [[InlineKeyboardButton("⬅️ Назад до Пам'ятки", callback_data='care_memo')]]
-    await safe_edit_message(
-        query=query,
-        text=CARE_MEMO_PART2_TEXT,
-        reply_markup=InlineKeyboardMarkup(back_button)
-    )
+ #   back_button = [[InlineKeyboardButton("⬅️ Назад до Пам'ятки", callback_data='care_memo')]]
+ #   await safe_edit_message(
+ #       query=query,
+ #       text=CARE_MEMO_PART2_TEXT,
+ #       reply_markup=InlineKeyboardMarkup(back_button)
+ #   )
 
 async def handle_care_memo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Пам'ятка по догляду - главное меню"""
@@ -327,4 +290,5 @@ async def handle_care_memo_part2(update: Update, context: ContextTypes.DEFAULT_T
         query=query,
         text=CARE_MEMO_PART2_TEXT,
         reply_markup=InlineKeyboardMarkup(back_button)
+
     )
